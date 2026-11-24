@@ -20,7 +20,7 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
 -- Lectura: catálogos y los 5 esquemas
 GRANT USAGE ON SCHEMA public, sig, cartago, san_jose, san_carlos, alajuela, limon TO sigtec_{{NODO}};
-GRANT SELECT ON public.campus, public.config TO sigtec_{{NODO}};
+GRANT SELECT ON public.campus, public.config, public.layer_styles TO sigtec_{{NODO}};
 GRANT SELECT ON ALL TABLES IN SCHEMA cartago, san_jose, san_carlos, alajuela, limon TO sigtec_{{NODO}};
 
 -- Edición: solo las vistas (las reglas las aplican los triggers INSTEAD OF)

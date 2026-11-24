@@ -17,13 +17,11 @@ Si el nombre del archivo tiene "por_esquema", se ejecuta 5 veces en el nodo:
 una por cada esquema de campus (cartago, san_jose, san_carlos, alajuela, limon).
 
 Marcas que se reemplazan antes de ejecutar:
-    {{SRID}}        -> SRID institucional (del .env)
+    {{CLAVE}}       -> cualquier valor del .env: {{SRID}}, {{REPL_USER}}, {{PORT_CARTAGO}}, ...
     {{NODO}}        -> nombre del nodo (central, cartago, ...)
     {{CAMPUS_ID}}   -> campus del nodo (1 a 5). En el central vale NULL
     {{ESQUEMA}}     -> (solo en archivos por_esquema) nombre del esquema
     {{ESQUEMA_ID}}  -> (solo en archivos por_esquema) campus dueño de ese esquema
-    {{REPL_USER}}, {{REPL_PASSWORD}} -> usuario de replicación (del .env)
-    {{EDITOR_PASSWORD}} -> clave del rol de edición de cada campus (del .env)
 Todos los SQL deben ser idempotentes (IF NOT EXISTS, CREATE OR REPLACE, etc.).
 Si se cambia la estructura de una tabla ya creada, hay que usar --reset.
 """
@@ -32,7 +30,7 @@ import os
 import subprocess
 import sys
 
-from comun import CAMPUS, ENV, NODOS, RAIZ, SRID, conectar, esperar_nodo
+from comun import CAMPUS, ENV, NODOS, RAIZ, conectar, esperar_nodo
 
 
 def docker_compose(*argumentos):
@@ -61,11 +59,10 @@ def ejecutar_sql_nodo(nodo):
         nombre = os.path.relpath(ruta, os.path.join(RAIZ, "sql")).replace("\\", "/")
         with open(ruta, encoding="utf-8") as archivo:
             plantilla = archivo.read()
-        # Marcas generales del nodo
-        plantilla = plantilla.replace("{{SRID}}", str(SRID))
-        plantilla = plantilla.replace("{{REPL_USER}}", ENV["REPL_USER"])
-        plantilla = plantilla.replace("{{REPL_PASSWORD}}", ENV["REPL_PASSWORD"])
-        plantilla = plantilla.replace("{{EDITOR_PASSWORD}}", ENV["EDITOR_PASSWORD"])
+        # Marcas del .env: {{SRID}}, {{REPL_USER}}, {{PORT_CARTAGO}}, ...
+        for clave, valor in ENV.items():
+            plantilla = plantilla.replace("{{" + clave + "}}", valor)
+        # Marcas del nodo
         plantilla = plantilla.replace("{{NODO}}", nodo)
         plantilla = plantilla.replace("{{CAMPUS_ID}}", "NULL" if campus_id is None else str(campus_id))
 
@@ -112,6 +109,10 @@ def main():
     print("5. Replicación lógica (nivel 1 y nivel 2)")
     import replicacion
     replicacion.configurar()
+
+    print("6. Estilos de QGIS (layer_styles en el central)")
+    import generar_estilos
+    generar_estilos.publicar_faltantes()
 
     print("Listo. Para ver el estado: python scripts/estado_nodos.py")
 

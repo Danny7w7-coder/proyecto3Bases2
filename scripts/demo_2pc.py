@@ -45,7 +45,7 @@ def nuevo_xid(conexion, gtrid, nodo):
 def trabajo_central(conexion, usuario):
     conexion.cursor().execute(
         "INSERT INTO public.usuarios (usuario, clave_hash, campus_id) "
-        "VALUES (%s, crypt('clave123', gen_salt('bf')), %s)", (usuario, CAMPUS_ID))
+        "VALUES (%s, crypt('clave123', gen_salt('bf', 10)), %s)", (usuario, CAMPUS_ID))
 
 
 def trabajo_campus(conexion, usuario, tipo="otro"):

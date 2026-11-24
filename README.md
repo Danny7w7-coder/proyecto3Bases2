@@ -29,6 +29,9 @@ Para volver a aplicar los SQL sin borrar nada: `python scripts/init_all.py`.
 | `python scripts/modo_sincrono.py demo` | Comparación asíncrono / síncrono (apaga y enciende el central) |
 | `python scripts/demo_2pc.py` | Commit en dos fases entre el central y San Carlos |
 | `python scripts/cargar_datos.py --forzar` | Recarga los datos de ejemplo |
+| `python scripts/generar_estilos.py listar` | Versiones de los estilos en el central |
+| `python scripts/generar_estilos.py nueva edificios 70,130,200` | Nueva versión del estilo de una capa (se replica a los campus) |
+| `python scripts/generar_estilos.py activar edificios 1` | Vuelve a una versión anterior del estilo |
 
 ## Nodos
 
@@ -45,3 +48,16 @@ Base: `sigtec`. Usuario: `postgres`. Clave: la de `.env` (solo para pruebas).
 
 Cada campus tiene además el rol `sigtec_<campus>` (clave `EDITOR_PASSWORD` del `.env`).
 Ese rol lee todo y solo edita a través de las vistas `sig.*`.
+
+## Usuarios de ejemplo (para el plugin)
+
+Clave de todos: `tec2026`
+
+| Usuario | Campus |
+|---|---|
+| cartago1, cartago2 | Cartago |
+| sanjose1 | San José |
+| sancarlos1, sancarlos2 | San Carlos |
+| alajuela1 | Alajuela |
+| limon1 | Limón |
+| inactivo1 | San Carlos (inactivo, para probar el rechazo) |

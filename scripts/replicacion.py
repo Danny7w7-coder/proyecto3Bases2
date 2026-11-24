@@ -7,7 +7,8 @@ NIVEL 1 (campus -> central)
     Resultado: el central tiene una copia física de cada campus en su propio esquema.
 
 NIVEL 2 (central -> campus)
-    El central publica, para cada campus, los esquemas de los OTROS 4:   pub_nivel2_<campus>
+    El central publica, para cada campus, los esquemas de los OTROS 4
+    y la tabla de estilos public.layer_styles:                           pub_nivel2_<campus>
     Cada campus se suscribe al central:                                  sub_nivel2_<campus>
     Resultado: cada campus tiene su esquema editable + los otros 4 como copia de consulta.
     Nunca se le envía a un campus su propio esquema, así los datos no "dan la vuelta".
@@ -30,6 +31,9 @@ import time
 
 from comun import CAMPUS, ENV, NODOS, conectar
 
+# Tabla de estilos de QGIS: vive en el central y viaja a los campus en el nivel 2
+ESTILOS = "public.layer_styles"
+
 
 def texto_conexion(host):
     """Cadena de conexión que usa el suscriptor para llegar al publicador (por la red docker)."""
@@ -46,15 +50,37 @@ def existe(nodo, catalogo, columna, nombre):
     return hay
 
 
-def crear_publicacion(nodo, nombre, esquemas):
+def crear_publicacion(nodo, nombre, esquemas, tabla_extra=None):
+    """Publica todas las tablas de los esquemas indicados (y opcionalmente una tabla más)."""
     if existe(nodo, "pg_publication", "pubname", nombre):
         print(f"  [{nodo}] publicación {nombre} ya existe")
         return
+    sql = f"CREATE PUBLICATION {nombre} FOR TABLES IN SCHEMA {', '.join(esquemas)}"
+    if tabla_extra:
+        sql += f", TABLE {tabla_extra}"
     conexion = conectar(nodo)
-    conexion.cursor().execute(
-        f"CREATE PUBLICATION {nombre} FOR TABLES IN SCHEMA {', '.join(esquemas)}")
+    conexion.cursor().execute(sql)
     conexion.close()
-    print(f"  [{nodo}] CREATE PUBLICATION {nombre} ({', '.join(esquemas)})")
+    print(f"  [{nodo}] CREATE PUBLICATION {nombre} ({', '.join(esquemas)}"
+          + (f" + {tabla_extra})" if tabla_extra else ")"))
+
+
+def asegurar_tabla(nodo, publicacion, tabla, nodo_suscriptor, suscripcion):
+    """Si la publicación ya existía sin la tabla, la agrega y refresca la suscripción
+    (así un ambiente creado antes recibe la tabla nueva sin borrar nada)."""
+    esquema, nombre = tabla.split(".")
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    cursor.execute("SELECT 1 FROM pg_publication_tables WHERE pubname = %s AND schemaname = %s AND tablename = %s",
+                   (publicacion, esquema, nombre))
+    if cursor.fetchone() is None:
+        cursor.execute(f"ALTER PUBLICATION {publicacion} ADD TABLE {tabla}")
+        print(f"  [{nodo}] ALTER PUBLICATION {publicacion} ADD TABLE {tabla}")
+        conexion.close()
+        conexion = conectar(nodo_suscriptor)
+        conexion.cursor().execute(f"ALTER SUBSCRIPTION {suscripcion} REFRESH PUBLICATION")
+        print(f"  [{nodo_suscriptor}] ALTER SUBSCRIPTION {suscripcion} REFRESH PUBLICATION")
+    conexion.close()
 
 
 def crear_suscripcion(nodo, nombre, host_publicador, publicacion):
@@ -95,12 +121,13 @@ def configurar():
         crear_suscripcion("central", f"sub_nivel1_{campus}", campus, f"pub_nivel1_{campus}")
     esperar_copia_inicial("central")
 
-    print(" Nivel 2: central -> campus")
+    print(" Nivel 2: central -> campus (los otros 4 esquemas + los estilos)")
     for _, campus in CAMPUS:
         otros = [otro for _, otro in CAMPUS if otro != campus]
-        crear_publicacion("central", f"pub_nivel2_{campus}", otros)
+        crear_publicacion("central", f"pub_nivel2_{campus}", otros, ESTILOS)
     for _, campus in CAMPUS:
         crear_suscripcion(campus, f"sub_nivel2_{campus}", "central", f"pub_nivel2_{campus}")
+        asegurar_tabla("central", f"pub_nivel2_{campus}", ESTILOS, campus, f"sub_nivel2_{campus}")
     for _, campus in CAMPUS:
         esperar_copia_inicial(campus)
 
