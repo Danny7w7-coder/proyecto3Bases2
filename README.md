@@ -113,9 +113,9 @@ sig-tec/
 | Archivo | Contenido |
 |---|---|
 | [docs/Informe_SIG-TEC.pdf](docs/Informe_SIG-TEC.pdf) | Informe del proyecto (también en [Word](docs/Informe_SIG-TEC.docx)) |
-| [docs/GUION_VIDEO.md](docs/GUION_VIDEO.md) | Guion del video con tiempos y comandos |
-| [docs/DECISIONES.md](docs/DECISIONES.md) | Decisiones de diseño y por qué |
-| [docs/CHECKLIST_ENUNCIADO.md](docs/CHECKLIST_ENUNCIADO.md) | Cada requisito del enunciado y cómo se probó |
+| [docs/INSTALAR_PLUGIN.md](docs/INSTALAR_PLUGIN.md) | Instalación y prueba del plugin en QGIS |
+| [docs/TRANSACCIONES.md](docs/TRANSACCIONES.md) | Replicación en dos niveles, modo síncrono y commit en dos fases |
+| [docs/RESPALDOS.md](docs/RESPALDOS.md) | Respaldos, PITR y escenarios de recuperación |
 
 ## Nodos
 

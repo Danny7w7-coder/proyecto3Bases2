@@ -1,6 +1,11 @@
 # Claves de cada instalación (se genera a partir de .env.example)
 .env
 
+# Documentos de trabajo del grupo (no son parte de la entrega)
+docs/DECISIONES.md
+docs/GUION_VIDEO.md
+docs/CHECKLIST_ENUNCIADO.md
+
 # Respaldos y WAL (pesados)
 backups/
 wal_archive/

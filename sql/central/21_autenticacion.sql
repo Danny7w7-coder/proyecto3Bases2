@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.campus_nodos (
     puerto           integer NOT NULL,
     base             text NOT NULL,
     usuario_conexion text NOT NULL,   -- rol de edición del campus (sigtec_<campus>)
-    clave_conexion   text NOT NULL    -- se entrega SOLO después de autenticar (ver DECISIONES)
+    clave_conexion   text NOT NULL    -- se entrega SOLO después de autenticar correctamente
 );
 
 INSERT INTO public.campus_nodos (campus_id, host, puerto, base, usuario_conexion, clave_conexion) VALUES

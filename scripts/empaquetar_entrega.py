@@ -17,6 +17,8 @@ from comun import RAIZ
 
 DESTINO = os.path.join(os.path.dirname(RAIZ), "sig-tec.zip")
 EXCLUIR_CARPETAS = {".git", "backups", "__pycache__", ".vscode", ".venv"}
+# Documentos de trabajo del grupo: se quedan en la computadora, no van en la entrega
+SOLO_LOCALES = {"docs/DECISIONES.md", "docs/GUION_VIDEO.md", "docs/CHECKLIST_ENUNCIADO.md"}
 
 
 def main():
@@ -24,7 +26,7 @@ def main():
     subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "empaquetar_plugin.py")], check=True,
                    capture_output=True)
     obligatorios = ["README.md", "docker-compose.yml", ".env.example", "docs/Informe_SIG-TEC.docx",
-                    "docs/GUION_VIDEO.md", "dist/sigtec.zip"]
+                    "dist/sigtec.zip"]
     for archivo in obligatorios:
         if not os.path.exists(os.path.join(RAIZ, archivo)):
             sys.exit(f"ERROR: falta {archivo}")
@@ -36,7 +38,7 @@ def main():
             for nombre in sorted(archivos):
                 ruta = os.path.join(carpeta, nombre)
                 relativa = os.path.relpath(ruta, RAIZ)
-                if nombre == ".env" or nombre.endswith(".pyc") or (
+                if nombre == ".env" or relativa.replace("\\", "/") in SOLO_LOCALES or nombre.endswith(".pyc") or (
                         nombre.endswith(".zip") and relativa != os.path.join("dist", "sigtec.zip")):
                     continue
                 salida.write(ruta, os.path.join("sig-tec", relativa))
