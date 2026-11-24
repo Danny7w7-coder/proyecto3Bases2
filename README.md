@@ -112,7 +112,7 @@ sig-tec/
 
 | Archivo | Contenido |
 |---|---|
-| [docs/Informe_SIG-TEC.pdf](docs/Informe_SIG-TEC.pdf) | Informe del proyecto (también en [Word](docs/Informe_SIG-TEC.docx)) |
+| [docs/Documentacion_Proyecto3.pdf](docs/Documentacion_Proyecto3.pdf) | Documentación del proyecto (también en [Word](docs/Documentacion_Proyecto3.docx)) |
 | [docs/INSTALAR_PLUGIN.md](docs/INSTALAR_PLUGIN.md) | Instalación y prueba del plugin en QGIS |
 | [docs/TRANSACCIONES.md](docs/TRANSACCIONES.md) | Replicación en dos niveles, modo síncrono y commit en dos fases |
 | [docs/RESPALDOS.md](docs/RESPALDOS.md) | Respaldos, PITR y escenarios de recuperación |

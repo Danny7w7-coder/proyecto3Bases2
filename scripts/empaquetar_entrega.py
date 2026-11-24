@@ -25,7 +25,7 @@ def main():
     # El plugin empaquetado tiene que estar al día
     subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "empaquetar_plugin.py")], check=True,
                    capture_output=True)
-    obligatorios = ["README.md", "docker-compose.yml", ".env.example", "docs/Informe_SIG-TEC.docx",
+    obligatorios = ["README.md", "docker-compose.yml", ".env.example", "docs/Documentacion_Proyecto3.docx",
                     "dist/sigtec.zip"]
     for archivo in obligatorios:
         if not os.path.exists(os.path.join(RAIZ, archivo)):
