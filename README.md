@@ -14,7 +14,7 @@ Seis nodos PostgreSQL 17 + PostGIS 3.5 en Docker: un nodo central de autenticaci
 **Requisitos:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) encendido, Python 3.10 o superior y git.
 
 ```powershell
-git clone URL_DEL_REPOSITORIO sig-tec
+git clone https://github.com/Danny7w7-coder/proyecto3Bases2.git sig-tec
 cd sig-tec
 pip install -r requirements.txt
 python scripts/init_all.py --reset        # levanta los 6 nodos y deja todo listo (unos 2 min)
@@ -132,5 +132,5 @@ Base `sigtec`, usuario `postgres`. La clave está en el `.env` generado (`DB_PAS
 
 ## Autores
 
-Danny Jesús Gonzalez Molina · Dylan Yoel Méndez Zamora · Francisco Javier Castillo Duarte
-Profesor: Msc. Leonardo Víquez Acuña
+Danny Jesús González Molina · Francisco Javier Castillo Duarte · Dylan Yoel Méndez Zamora
+Profesor: Msc. Leonardo Víquez Acuña · Tercer Proyecto, Bases de Datos II, noviembre de 2026
