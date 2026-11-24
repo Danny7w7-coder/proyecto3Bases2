@@ -1,6 +1,9 @@
 # Claves de cada instalación (se genera a partir de .env.example)
 .env
 
+# Resultado de las pruebas que se guarda para el video
+pruebas_resultado.txt
+
 # Documentos de trabajo del grupo (no son parte de la entrega)
 docs/DECISIONES.md
 docs/GUION_VIDEO.md
