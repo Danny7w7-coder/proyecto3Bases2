@@ -64,6 +64,26 @@ def conectar(nodo, autocommit=True):
     return conexion
 
 
+def contar(nodo, sql, parametros=None):
+    """Ejecuta un SELECT count(*) (o cualquier valor único) en el nodo y lo devuelve."""
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    cursor.execute(sql, parametros)
+    valor = cursor.fetchone()[0]
+    conexion.close()
+    return valor
+
+
+def esperar_hasta(condicion, segundos=20):
+    """Repite condicion() cada 0.2 s hasta que sea verdadera. Devuelve los segundos que tardó."""
+    inicio = time.time()
+    while time.time() - inicio < segundos:
+        if condicion():
+            return round(time.time() - inicio, 2)
+        time.sleep(0.2)
+    raise TimeoutError(f"no se cumplió en {segundos} s")
+
+
 def esperar_nodo(nodo, segundos=90):
     """Intenta conectarse al nodo hasta que responda o se acabe el tiempo."""
     limite = time.time() + segundos

@@ -22,6 +22,7 @@ Marcas que se reemplazan antes de ejecutar:
     {{CAMPUS_ID}}   -> campus del nodo (1 a 5). En el central vale NULL
     {{ESQUEMA}}     -> (solo en archivos por_esquema) nombre del esquema
     {{ESQUEMA_ID}}  -> (solo en archivos por_esquema) campus dueño de ese esquema
+    {{REPL_USER}}, {{REPL_PASSWORD}} -> usuario de replicación (del .env)
 Todos los SQL deben ser idempotentes (IF NOT EXISTS, CREATE OR REPLACE, etc.).
 Si se cambia la estructura de una tabla ya creada, hay que usar --reset.
 """
@@ -30,7 +31,7 @@ import os
 import subprocess
 import sys
 
-from comun import CAMPUS, NODOS, RAIZ, SRID, conectar, esperar_nodo
+from comun import CAMPUS, ENV, NODOS, RAIZ, SRID, conectar, esperar_nodo
 
 
 def docker_compose(*argumentos):
@@ -61,6 +62,8 @@ def ejecutar_sql_nodo(nodo):
             plantilla = archivo.read()
         # Marcas generales del nodo
         plantilla = plantilla.replace("{{SRID}}", str(SRID))
+        plantilla = plantilla.replace("{{REPL_USER}}", ENV["REPL_USER"])
+        plantilla = plantilla.replace("{{REPL_PASSWORD}}", ENV["REPL_PASSWORD"])
         plantilla = plantilla.replace("{{NODO}}", nodo)
         plantilla = plantilla.replace("{{CAMPUS_ID}}", "NULL" if campus_id is None else str(campus_id))
 
@@ -101,6 +104,10 @@ def main():
         print("4. Datos de ejemplo")
         import cargar_datos
         cargar_datos.main()
+
+    print("5. Replicación lógica (nivel 1 y nivel 2)")
+    import replicacion
+    replicacion.configurar()
 
     print("Listo. Para ver el estado: python scripts/estado_nodos.py")
 

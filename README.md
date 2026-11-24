@@ -18,6 +18,17 @@ Sistema distribuido de información geográfica de los 5 campus del TEC.
 
 Para volver a aplicar los SQL sin borrar nada: `python scripts/init_all.py`.
 
+## Comandos útiles
+
+| Comando | Qué hace |
+|---|---|
+| `python scripts/correr_pruebas.py` | Todas las pruebas automáticas (OK / FALLO) |
+| `python scripts/verificar_consistencia.py` | Compara las 40 capas en los 6 nodos y muestra el retraso de la replicación |
+| `python scripts/replicacion.py estado` | Publicaciones y suscripciones de cada nodo |
+| `python scripts/modo_sincrono.py demo` | Comparación asíncrono / síncrono (apaga y enciende el central) |
+| `python scripts/demo_2pc.py` | Commit en dos fases entre el central y San Carlos |
+| `python scripts/cargar_datos.py --forzar` | Recarga los datos de ejemplo |
+
 ## Nodos
 
 | Nodo | Contenedor | Puerto |

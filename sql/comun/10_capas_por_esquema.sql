@@ -157,6 +157,15 @@ CREATE INDEX IF NOT EXISTS iluminacion_geom_gist    ON {{ESQUEMA}}.iluminacion  
 CREATE INDEX IF NOT EXISTS accesibilidad_geom_gist  ON {{ESQUEMA}}.accesibilidad  USING gist (geom);
 
 -- ---------------------------------------------------------------------
+-- Replicación lógica
+--  - REPLICA IDENTITY: se usa la clave primaria (id), que es el valor por defecto.
+--    Con ella el suscriptor sabe qué fila actualizar o borrar.
+--  - El usuario de replicación necesita leer las tablas para la copia inicial.
+-- ---------------------------------------------------------------------
+GRANT USAGE ON SCHEMA {{ESQUEMA}} TO {{REPL_USER}};
+GRANT SELECT ON ALL TABLES IN SCHEMA {{ESQUEMA}} TO {{REPL_USER}};
+
+-- ---------------------------------------------------------------------
 -- Trigger de protección: solo el nodo dueño escribe en este esquema.
 -- Es por sentencia (FOR EACH STATEMENT) porque no depende de la fila:
 -- basta saber en qué nodo estamos. Cubre también TRUNCATE.
