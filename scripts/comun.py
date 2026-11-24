@@ -14,10 +14,34 @@ import psycopg2
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+RUTA_ENV = os.path.join(RAIZ, ".env")
+RUTA_PLANTILLA = os.path.join(RAIZ, ".env.example")
+# Claves que se generan al azar en cada instalación (en la plantilla están vacías)
+CLAVES_ALEATORIAS = ["DB_PASSWORD", "REPL_PASSWORD", "EDITOR_PASSWORD"]
+
+
+def crear_env():
+    """Crea .env a partir de .env.example y llena las claves vacías con valores aleatorios.
+    Solo pasa la primera vez: si .env ya existe no se toca (los nodos ya usan esas claves)."""
+    import secrets
+    lineas = []
+    with open(RUTA_PLANTILLA, encoding="utf-8") as plantilla:
+        for linea in plantilla:
+            clave = linea.split("=", 1)[0].strip()
+            if clave in CLAVES_ALEATORIAS and linea.strip() == clave + "=":
+                linea = f"{clave}={secrets.token_hex(16)}\n"  # 32 caracteres 0-9a-f
+            lineas.append(linea)
+    with open(RUTA_ENV, "w", encoding="utf-8") as archivo:
+        archivo.writelines(lineas)
+    print("Se creó .env con claves aleatorias (no se sube a git).")
+
+
 def leer_env():
-    """Lee el archivo .env y devuelve un diccionario {clave: valor}."""
+    """Lee el archivo .env y devuelve un diccionario {clave: valor}. Si no existe, lo crea."""
+    if not os.path.exists(RUTA_ENV):
+        crear_env()
     valores = {}
-    ruta = os.path.join(RAIZ, ".env")
+    ruta = RUTA_ENV
     with open(ruta, encoding="utf-8") as archivo:
         for linea in archivo:
             linea = linea.strip()

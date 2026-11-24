@@ -3,8 +3,8 @@ Arma el zip de entrega: ../sig-tec.zip (junto a la carpeta del proyecto).
 
 Incluye: fuentes (SQL, Python, Docker), plugin empaquetado (dist/sigtec.zip),
 informe, guion del video, documentación y figuras.
-No incluye: backups/ (pesados), .git/, __pycache__/, ni los zips viejos.
-Las claves del .env son SOLO de prueba (no hay contraseñas reales).
+No incluye: backups/ (pesados), .git/, __pycache__/, los zips viejos ni el .env
+(cada instalación genera su .env con claves aleatorias a partir de .env.example).
 
 Uso: python scripts/empaquetar_entrega.py
 """
@@ -23,7 +23,7 @@ def main():
     # El plugin empaquetado tiene que estar al día
     subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "empaquetar_plugin.py")], check=True,
                    capture_output=True)
-    obligatorios = ["README.md", "docker-compose.yml", ".env", "docs/Informe_SIG-TEC.docx",
+    obligatorios = ["README.md", "docker-compose.yml", ".env.example", "docs/Informe_SIG-TEC.docx",
                     "docs/GUION_VIDEO.md", "dist/sigtec.zip"]
     for archivo in obligatorios:
         if not os.path.exists(os.path.join(RAIZ, archivo)):
@@ -36,7 +36,8 @@ def main():
             for nombre in sorted(archivos):
                 ruta = os.path.join(carpeta, nombre)
                 relativa = os.path.relpath(ruta, RAIZ)
-                if nombre.endswith(".pyc") or (nombre.endswith(".zip") and relativa != os.path.join("dist", "sigtec.zip")):
+                if nombre == ".env" or nombre.endswith(".pyc") or (
+                        nombre.endswith(".zip") and relativa != os.path.join("dist", "sigtec.zip")):
                     continue
                 salida.write(ruta, os.path.join("sig-tec", relativa))
                 total += 1

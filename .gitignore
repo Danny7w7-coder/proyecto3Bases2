@@ -1,3 +1,6 @@
+# Claves de cada instalación (se genera a partir de .env.example)
+.env
+
 # Respaldos y WAL (pesados)
 backups/
 wal_archive/
