@@ -50,4 +50,13 @@ Usuarios de ejemplo (clave `tec2026`): `cartago1`, `sanjose1`, `sancarlos1`, `al
 - `test_plugin_logica.py`: la lógica sin QGIS. Configuración, login bueno o malo, servidor caído, estilos, mensajes de error e inyección SQL.
 - `test_plugin_qgis.py`: el plugin **dentro de QGIS** (con el Python de QGIS, sin abrir la ventana principal). Son 12 pruebas: carga del plugin, ventana de login con clave buena o mala, 8 capas con SRID 5367 y clave `id`, estilos aplicados, mapa centrado, edición propia guardada, edición o borrado ajeno rechazado con mensaje, alta y baja de un punto, conexión de respaldo sin psycopg2, cambio de usuario sin duplicar capas y `unload()`.
 
-Lo que **no** se puede probar automáticamente son los clics reales en la ventana de QGIS y cómo se ve el mapa. Eso es la prueba manual de arriba.
+Y en la **ventana real de QGIS** (con interfaz, no sin pantalla):
+
+```powershell
+$env:SIGTEC_CAPTURAS = "C:\ruta\para\capturas"
+& "C:\Program Files\QGIS 3.44.15\bin\qgis-ltr.bat" --nologo --code "$PWD\tests\qgis\prueba_ventana_qgis.py"
+```
+
+Antes hay que instalar el plugin en el perfil, con "Instalar a partir de ZIP" o descomprimiendo `dist/sigtec.zip` en `%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins`. El script abre QGIS y hace los pasos 1 a 10 de la tabla de arriba con la ventana, la barra de mensajes y el mapa reales. Guarda una captura en cada paso y el resultado en `resultado.txt`, y al final cierra QGIS. Después hay que borrar el punto "Soda de prueba QGIS" y devolver Laboratorios a 1 piso, o correr `python scripts/cargar_datos.py --forzar`.
+
+Lo único que no se prueba automáticamente es mover el mouse. Eso es la prueba manual de arriba.

@@ -11,6 +11,7 @@ Flujo al presionar el botón "SIG-TEC":
 import os
 
 from qgis.core import Qgis
+from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 
@@ -75,8 +76,10 @@ class SigTecPlugin:
 
         rect = modulo_capas.rectangulo(extension)
         if rect:
-            self.iface.mapCanvas().setExtent(rect)
-            self.iface.mapCanvas().refresh()
+            self.acercar_al_campus(rect)
+            # Si el proyecto estaba vacío, QGIS hace su propio "zoom a la primera capa" un instante
+            # después de agregarla (y mostraría todo el país). Por eso se vuelve a acercar después.
+            QTimer.singleShot(400, lambda: self.acercar_al_campus(rect))
 
         self.sesion = datos
         texto = (f"Bienvenido {datos['usuario']} ({datos['campus_nombre']}). "
@@ -85,6 +88,10 @@ class SigTecPlugin:
         self.iface.messageBar().pushMessage(TITULO, texto, level=Qgis.MessageLevel.Success, duration=8)
         if problemas:
             QMessageBox.warning(self.iface.mainWindow(), TITULO, "\n".join(problemas))
+
+    def acercar_al_campus(self, rect):
+        self.iface.mapCanvas().setExtent(rect)
+        self.iface.mapCanvas().refresh()
 
     # --- Errores de edición ---
     def mostrar_error_edicion(self, capa, mensaje):
