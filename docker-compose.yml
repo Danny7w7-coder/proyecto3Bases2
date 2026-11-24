@@ -1,0 +1,123 @@
+# SIG-TEC: 1 nodo central + 5 nodos de campus, cada uno con PostgreSQL + PostGIS.
+# Los valores ${...} vienen del archivo .env
+
+# Configuración común a los 6 nodos (ancla YAML que se reutiliza abajo)
+x-nodo: &nodo
+  build:
+    context: ./docker
+    args:
+      POSTGIS_IMAGE: ${POSTGIS_IMAGE}
+  image: sigtec-nodo:latest
+  restart: unless-stopped
+  environment:
+    POSTGRES_DB: ${DB_NAME}
+    POSTGRES_USER: ${DB_USER}
+    POSTGRES_PASSWORD: ${DB_PASSWORD}
+  networks:
+    - sigtec
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+    interval: 5s
+    timeout: 5s
+    retries: 20
+  # Parámetros de PostgreSQL:
+  #  - wal_level=logical: necesario para la replicación lógica (fase 3)
+  #  - slots / wal_senders / workers: alcanzan para 5 suscripciones + copias iniciales
+  #  - max_prepared_transactions > 0: permite el commit en dos fases (2PC)
+  #  - archive_mode + archive_command: guarda cada WAL en /wal_archive (para PITR)
+  #  - archive_timeout=60: fuerza archivar un WAL al menos cada minuto
+  command:
+    - postgres
+    - -c
+    - wal_level=logical
+    - -c
+    - max_replication_slots=20
+    - -c
+    - max_wal_senders=20
+    - -c
+    - max_logical_replication_workers=20
+    - -c
+    - max_worker_processes=32
+    - -c
+    - max_prepared_transactions=20
+    - -c
+    - archive_mode=on
+    - -c
+    - archive_command=test ! -f /wal_archive/%f && cp %p /wal_archive/%f
+    - -c
+    - archive_timeout=60
+
+services:
+  central:
+    <<: *nodo
+    container_name: sigtec_central
+    hostname: central
+    ports: ["${PORT_CENTRAL}:5432"]
+    volumes:
+      - central_data:/var/lib/postgresql/data
+      - central_wal:/wal_archive
+
+  cartago:
+    <<: *nodo
+    container_name: sigtec_cartago
+    hostname: cartago
+    ports: ["${PORT_CARTAGO}:5432"]
+    volumes:
+      - cartago_data:/var/lib/postgresql/data
+      - cartago_wal:/wal_archive
+
+  san_jose:
+    <<: *nodo
+    container_name: sigtec_san_jose
+    hostname: san_jose
+    ports: ["${PORT_SAN_JOSE}:5432"]
+    volumes:
+      - san_jose_data:/var/lib/postgresql/data
+      - san_jose_wal:/wal_archive
+
+  san_carlos:
+    <<: *nodo
+    container_name: sigtec_san_carlos
+    hostname: san_carlos
+    ports: ["${PORT_SAN_CARLOS}:5432"]
+    volumes:
+      - san_carlos_data:/var/lib/postgresql/data
+      - san_carlos_wal:/wal_archive
+
+  alajuela:
+    <<: *nodo
+    container_name: sigtec_alajuela
+    hostname: alajuela
+    ports: ["${PORT_ALAJUELA}:5432"]
+    volumes:
+      - alajuela_data:/var/lib/postgresql/data
+      - alajuela_wal:/wal_archive
+
+  limon:
+    <<: *nodo
+    container_name: sigtec_limon
+    hostname: limon
+    ports: ["${PORT_LIMON}:5432"]
+    volumes:
+      - limon_data:/var/lib/postgresql/data
+      - limon_wal:/wal_archive
+
+# Red propia: los nodos se encuentran por nombre (central, cartago, san_jose, ...)
+networks:
+  sigtec:
+    name: sigtec_red
+
+# Un volumen de datos y uno de WAL por nodo
+volumes:
+  central_data:
+  central_wal:
+  cartago_data:
+  cartago_wal:
+  san_jose_data:
+  san_jose_wal:
+  san_carlos_data:
+  san_carlos_wal:
+  alajuela_data:
+  alajuela_wal:
+  limon_data:
+  limon_wal:

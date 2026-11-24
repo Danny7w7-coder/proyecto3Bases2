@@ -1,0 +1,5 @@
+# Finales de línea Unix para que los archivos funcionen igual dentro de los contenedores Linux
+* text=auto eol=lf
+*.pdf binary
+*.docx binary
+*.zip binary
