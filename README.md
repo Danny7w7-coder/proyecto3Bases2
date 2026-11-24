@@ -55,6 +55,20 @@ Base: `sigtec`. Usuario: `postgres`. Clave: la de `.env` (solo para pruebas).
 Cada campus tiene además el rol `sigtec_<campus>` (clave `EDITOR_PASSWORD` del `.env`).
 Ese rol lee todo y solo edita a través de las vistas `sig.*`.
 
+## Documentación
+
+| Archivo | Contenido |
+|---|---|
+| [docs/Informe_SIG-TEC.docx](docs/Informe_SIG-TEC.docx) | Informe del proyecto (también en PDF) |
+| [docs/GUION_VIDEO.md](docs/GUION_VIDEO.md) | Guion del video con tiempos y comandos |
+| [docs/INSTALAR_PLUGIN.md](docs/INSTALAR_PLUGIN.md) | Instalación y prueba manual del plugin |
+| [docs/TRANSACCIONES.md](docs/TRANSACCIONES.md) | Replicación, modo síncrono y 2PC |
+| [docs/RESPALDOS.md](docs/RESPALDOS.md) | Respaldos, PITR y escenarios de recuperación |
+| [docs/DECISIONES.md](docs/DECISIONES.md) | Decisiones de diseño y por qué |
+| [docs/CHECKLIST_ENUNCIADO.md](docs/CHECKLIST_ENUNCIADO.md) | Cada requisito del enunciado y cómo se probó |
+
+Zip de entrega: `python scripts/empaquetar_entrega.py` → `../sig-tec.zip`
+
 ## Plugin de QGIS
 
 1. `python scripts/empaquetar_plugin.py` → `dist/sigtec.zip`
