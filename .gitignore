@@ -1,0 +1,16 @@
+# Respaldos y WAL (pesados)
+backups/
+wal_archive/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Paquetes generados
+*.zip
+
+# Editor / sistema
+.vscode/
+.DS_Store
+Thumbs.db
