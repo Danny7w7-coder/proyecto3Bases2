@@ -25,6 +25,7 @@ Uso:
     python scripts/replicacion.py estado     # muestra publicaciones y suscripciones
     python scripts/replicacion.py quitar     # borra todas las suscripciones y publicaciones
     python scripts/replicacion.py reactivar  # relanza suscripciones que quedaron sin proceso
+    python scripts/replicacion.py resincronizar limon   # reengancha un campus restaurado
 """
 import sys
 import time
@@ -171,6 +172,86 @@ def reactivar(segundos=60):
     return False
 
 
+# ---------------------------------------------------------------------
+# Resincronizar un campus (después de restaurarlo)
+# ---------------------------------------------------------------------
+def quitar_suscripcion(nodo, nombre):
+    """Borra una suscripción SIN tocar el slot remoto (puede que ya no exista).
+    DISABLE + slot_name = NONE es la forma de soltar una suscripción cuyo publicador cambió."""
+    if not existe(nodo, "pg_subscription", "subname", nombre):
+        return
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    cursor.execute(f"ALTER SUBSCRIPTION {nombre} DISABLE")
+    cursor.execute(f"ALTER SUBSCRIPTION {nombre} SET (slot_name = NONE)")
+    cursor.execute(f"DROP SUBSCRIPTION {nombre}")
+    conexion.close()
+    print(f"  [{nodo}] DROP SUBSCRIPTION {nombre}")
+
+
+def quitar_slot(nodo, nombre, segundos=30):
+    """Borra un slot de replicación que quedó huérfano (espera a que nadie lo use)."""
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    limite = time.time() + segundos
+    while time.time() < limite:
+        cursor.execute("SELECT active FROM pg_replication_slots WHERE slot_name = %s", (nombre,))
+        fila = cursor.fetchone()
+        if fila is None:
+            break
+        if not fila[0]:
+            cursor.execute("SELECT pg_drop_replication_slot(%s)", (nombre,))
+            print(f"  [{nodo}] pg_drop_replication_slot('{nombre}')")
+            break
+        time.sleep(1)
+    conexion.close()
+
+
+def vaciar(nodo, esquemas, incluir_estilos=False):
+    """TRUNCATE de todas las tablas de los esquemas.
+    session_replication_role = replica: así no se disparan los triggers de protección
+    (es lo mismo que hace la replicación al aplicar datos). Requiere superusuario."""
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    cursor.execute("SELECT schemaname || '.' || tablename FROM pg_tables WHERE schemaname = ANY(%s)",
+                   (list(esquemas),))
+    tablas = [fila[0] for fila in cursor.fetchall()]
+    if incluir_estilos:
+        tablas.append(ESTILOS)
+    cursor.execute("SET session_replication_role = replica")
+    cursor.execute(f"TRUNCATE {', '.join(tablas)}")
+    conexion.close()
+    print(f"  [{nodo}] TRUNCATE de {len(tablas)} tablas ({', '.join(esquemas)}{' + estilos' if incluir_estilos else ''})")
+
+
+def resincronizar(campus):
+    """Vuelve a enganchar un campus restaurado con el resto del sistema.
+
+    Después de restaurar un nodo (PITR o respaldo físico):
+      - el nodo NO tiene sus slots (pg_basebackup no los copia),
+      - sus datos pueden ser "más viejos" que lo que ya tiene el central.
+    El nodo restaurado manda sobre SU esquema; el central manda sobre los demás.
+    """
+    otros = [c for _, c in CAMPUS if c != campus]
+    print(f" Resincronizando {campus}")
+    # 1. Soltar las suscripciones y slots viejos de este campus (nivel 1 y nivel 2)
+    quitar_suscripcion("central", f"sub_nivel1_{campus}")
+    quitar_slot(campus, f"sub_nivel1_{campus}")
+    quitar_suscripcion(campus, f"sub_nivel2_{campus}")
+    quitar_slot("central", f"sub_nivel2_{campus}")
+    # 2. Vaciar las copias: la del campus en el central (el TRUNCATE viaja a los otros
+    #    4 campus por el nivel 2) y las de los otros campus en el nodo restaurado.
+    vaciar("central", [campus])
+    vaciar(campus, otros, incluir_estilos=True)
+    # 3. Volver a crear el nivel 1 y el nivel 2 con copia inicial
+    crear_publicacion(campus, f"pub_nivel1_{campus}", [campus])
+    crear_suscripcion("central", f"sub_nivel1_{campus}", campus, f"pub_nivel1_{campus}")
+    esperar_copia_inicial("central")
+    crear_suscripcion(campus, f"sub_nivel2_{campus}", "central", f"pub_nivel2_{campus}")
+    esperar_copia_inicial(campus)
+    reactivar()
+
+
 def quitar():
     """Borra suscripciones (y con ellas sus slots remotos) y luego publicaciones."""
     for nodo in NODOS:
@@ -210,4 +291,7 @@ def estado():
 
 if __name__ == "__main__":
     accion = sys.argv[1] if len(sys.argv) > 1 else "configurar"
-    {"configurar": configurar, "estado": estado, "quitar": quitar, "reactivar": reactivar}[accion]()
+    if accion == "resincronizar":
+        resincronizar(sys.argv[2])
+    else:
+        {"configurar": configurar, "estado": estado, "quitar": quitar, "reactivar": reactivar}[accion]()

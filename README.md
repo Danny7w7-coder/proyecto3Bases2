@@ -29,6 +29,12 @@ Para volver a aplicar los SQL sin borrar nada: `python scripts/init_all.py`.
 | `python scripts/modo_sincrono.py demo` | Comparación asíncrono / síncrono (apaga y enciende el central) |
 | `python scripts/demo_2pc.py` | Commit en dos fases entre el central y San Carlos |
 | `python scripts/cargar_datos.py --forzar` | Recarga los datos de ejemplo |
+| `python scripts/respaldos.py logico todos` | `pg_dump` de cada nodo (base completa + esquema propio) |
+| `python scripts/respaldos.py fisico todos` | `pg_basebackup` de cada nodo |
+| `python scripts/respaldos.py listar` | Respaldos guardados y estado del WAL archivado |
+| `python scripts/escenarios.py a` | Escenario A: borrado por error en San Carlos → PITR |
+| `python scripts/escenarios.py b fisico` | Escenario B: se pierde Limón → respaldo físico + WAL |
+| `python scripts/escenarios.py b desde_central` | Escenario B: se pierde Limón → recuperación desde el central |
 | `python scripts/generar_estilos.py listar` | Versiones de los estilos en el central |
 | `python scripts/generar_estilos.py nueva edificios 70,130,200` | Nueva versión del estilo de una capa (se replica a los campus) |
 | `python scripts/generar_estilos.py activar edificios 1` | Vuelve a una versión anterior del estilo |
