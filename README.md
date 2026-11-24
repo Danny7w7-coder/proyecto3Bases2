@@ -25,6 +25,7 @@ Para volver a aplicar los SQL sin borrar nada: `python scripts/init_all.py`.
 | `python scripts/correr_pruebas.py` | Todas las pruebas automáticas (OK / FALLO) |
 | `python scripts/verificar_consistencia.py` | Compara las 40 capas en los 6 nodos y muestra el retraso de la replicación |
 | `python scripts/replicacion.py estado` | Publicaciones y suscripciones de cada nodo |
+| `python scripts/replicacion.py reactivar` | Relanza suscripciones que quedaron sin proceso (por ejemplo tras reiniciar nodos) |
 | `python scripts/modo_sincrono.py demo` | Comparación asíncrono / síncrono (apaga y enciende el central) |
 | `python scripts/demo_2pc.py` | Commit en dos fases entre el central y San Carlos |
 | `python scripts/cargar_datos.py --forzar` | Recarga los datos de ejemplo |
@@ -41,3 +42,6 @@ Para volver a aplicar los SQL sin borrar nada: `python scripts/init_all.py`.
 | limon | sigtec_limon | 5445 |
 
 Base: `sigtec`. Usuario: `postgres`. Clave: la de `.env` (solo para pruebas).
+
+Cada campus tiene además el rol `sigtec_<campus>` (clave `EDITOR_PASSWORD` del `.env`).
+Ese rol lee todo y solo edita a través de las vistas `sig.*`.

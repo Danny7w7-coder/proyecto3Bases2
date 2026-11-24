@@ -50,14 +50,15 @@ for campus_id, nombre in CAMPUS:
     }
 
 
-def conectar(nodo, autocommit=True):
-    """Abre una conexión al nodo indicado desde la máquina anfitriona."""
+def conectar(nodo, autocommit=True, usuario=None, clave=None):
+    """Abre una conexión al nodo indicado desde la máquina anfitriona.
+    Por defecto entra como superusuario. Se puede indicar otro usuario y clave."""
     conexion = psycopg2.connect(
         host="127.0.0.1",
         port=NODOS[nodo]["puerto"],
         dbname=ENV["DB_NAME"],
-        user=ENV["DB_USER"],
-        password=ENV["DB_PASSWORD"],
+        user=usuario or ENV["DB_USER"],
+        password=clave or ENV["DB_PASSWORD"],
         connect_timeout=3,
     )
     conexion.autocommit = autocommit

@@ -23,6 +23,7 @@ Marcas que se reemplazan antes de ejecutar:
     {{ESQUEMA}}     -> (solo en archivos por_esquema) nombre del esquema
     {{ESQUEMA_ID}}  -> (solo en archivos por_esquema) campus dueño de ese esquema
     {{REPL_USER}}, {{REPL_PASSWORD}} -> usuario de replicación (del .env)
+    {{EDITOR_PASSWORD}} -> clave del rol de edición de cada campus (del .env)
 Todos los SQL deben ser idempotentes (IF NOT EXISTS, CREATE OR REPLACE, etc.).
 Si se cambia la estructura de una tabla ya creada, hay que usar --reset.
 """
@@ -64,6 +65,7 @@ def ejecutar_sql_nodo(nodo):
         plantilla = plantilla.replace("{{SRID}}", str(SRID))
         plantilla = plantilla.replace("{{REPL_USER}}", ENV["REPL_USER"])
         plantilla = plantilla.replace("{{REPL_PASSWORD}}", ENV["REPL_PASSWORD"])
+        plantilla = plantilla.replace("{{EDITOR_PASSWORD}}", ENV["EDITOR_PASSWORD"])
         plantilla = plantilla.replace("{{NODO}}", nodo)
         plantilla = plantilla.replace("{{CAMPUS_ID}}", "NULL" if campus_id is None else str(campus_id))
 
@@ -88,7 +90,9 @@ def main():
     if reset:
         print("  --reset: se borran contenedores y volúmenes")
         docker_compose("down", "-v", "--remove-orphans")
-    docker_compose("up", "-d", "--build")
+        docker_compose("build")
+    # Sin --build: si los contenedores ya corren, no se recrean (no se corta la replicación)
+    docker_compose("up", "-d")
 
     print("2. Esperando a que los nodos respondan")
     for nodo in NODOS:

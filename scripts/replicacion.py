@@ -23,6 +23,7 @@ Uso:
     python scripts/replicacion.py            # crea lo que falte (se puede repetir)
     python scripts/replicacion.py estado     # muestra publicaciones y suscripciones
     python scripts/replicacion.py quitar     # borra todas las suscripciones y publicaciones
+    python scripts/replicacion.py reactivar  # relanza suscripciones que quedaron sin proceso
 """
 import sys
 import time
@@ -103,6 +104,45 @@ def configurar():
     for _, campus in CAMPUS:
         esperar_copia_inicial(campus)
 
+    print(" Revisando que todas las suscripciones estén corriendo")
+    reactivar()
+
+
+def suscripciones_sin_proceso(nodo):
+    """Suscripciones activas del nodo cuyo proceso de aplicación NO está corriendo."""
+    conexion = conectar(nodo)
+    cursor = conexion.cursor()
+    cursor.execute("""SELECT s.subname FROM pg_subscription s
+                      LEFT JOIN pg_stat_subscription w ON w.subid = s.oid AND w.relid IS NULL
+                      WHERE s.subenabled AND w.pid IS NULL ORDER BY 1""")
+    nombres = [fila[0] for fila in cursor.fetchall()]
+    conexion.close()
+    return nombres
+
+
+def reactivar(segundos=60):
+    """Despierta las suscripciones que quedaron sin proceso.
+
+    Si al arrancar un nodo su publicador todavía no estaba listo, el proceso de la
+    suscripción falla y PostgreSQL puede tardar hasta 3 minutos en reintentar.
+    DISABLE + ENABLE hace que lo vuelva a lanzar de inmediato.
+    """
+    limite = time.time() + segundos
+    while time.time() < limite:
+        caidas = [(nodo, nombre) for nodo in NODOS for nombre in suscripciones_sin_proceso(nodo)]
+        if not caidas:
+            print("  las 10 suscripciones tienen su proceso corriendo")
+            return True
+        for nodo, nombre in caidas:
+            conexion = conectar(nodo)
+            conexion.cursor().execute(f"ALTER SUBSCRIPTION {nombre} DISABLE")
+            conexion.cursor().execute(f"ALTER SUBSCRIPTION {nombre} ENABLE")
+            conexion.close()
+            print(f"  [{nodo}] {nombre} sin proceso -> DISABLE + ENABLE")
+        time.sleep(3)
+    print("  AVISO: hay suscripciones que no arrancan (revise que todos los nodos estén arriba)")
+    return False
+
 
 def quitar():
     """Borra suscripciones (y con ellas sus slots remotos) y luego publicaciones."""
@@ -143,4 +183,4 @@ def estado():
 
 if __name__ == "__main__":
     accion = sys.argv[1] if len(sys.argv) > 1 else "configurar"
-    {"configurar": configurar, "estado": estado, "quitar": quitar}[accion]()
+    {"configurar": configurar, "estado": estado, "quitar": quitar, "reactivar": reactivar}[accion]()
