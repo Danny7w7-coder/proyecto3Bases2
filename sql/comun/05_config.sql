@@ -34,6 +34,27 @@ LANGUAGE sql STABLE AS $$
     SELECT campus_id FROM public.config;
 $$;
 
+-- Trigger de protección de réplicas: solo el nodo dueño puede escribir en un esquema.
+-- Recibe como argumento (TG_ARGV[0]) el campus dueño del esquema de la tabla.
+--   - En el nodo de San Carlos (mi_campus = 3) se puede escribir en san_carlos.*,
+--     pero no en cartago.*, san_jose.*, etc. (son copias de consulta).
+--   - En el central (mi_campus = NULL) no se puede escribir en ningún esquema:
+--     todo lo recibe por replicación.
+-- Este trigger NO se dispara cuando la fila llega por replicación lógica (el proceso de
+-- replicación trabaja con session_replication_role = replica), así que no la bloquea.
+CREATE OR REPLACE FUNCTION public.fn_solo_dueno() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    dueno smallint := TG_ARGV[0]::smallint;
+BEGIN
+    IF public.mi_campus() IS DISTINCT FROM dueno THEN
+        RAISE EXCEPTION 'El esquema % es una copia de solo lectura en el nodo %. Solo el campus % puede modificarlo.',
+            TG_TABLE_SCHEMA, (SELECT nodo FROM public.config), dueno;
+    END IF;
+    RETURN NULL;  -- en un trigger por sentencia el valor de retorno se ignora
+END;
+$$;
+
 -- Trigger genérico: actualiza la columna modificado_en en cada UPDATE.
 -- Nota: los triggers normales NO se disparan cuando la fila llega por replicación
 -- lógica, así que en las réplicas se conserva la fecha del campus dueño.

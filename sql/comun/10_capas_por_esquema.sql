@@ -157,6 +157,20 @@ CREATE INDEX IF NOT EXISTS iluminacion_geom_gist    ON {{ESQUEMA}}.iluminacion  
 CREATE INDEX IF NOT EXISTS accesibilidad_geom_gist  ON {{ESQUEMA}}.accesibilidad  USING gist (geom);
 
 -- ---------------------------------------------------------------------
+-- Trigger de protección: solo el nodo dueño escribe en este esquema.
+-- Es por sentencia (FOR EACH STATEMENT) porque no depende de la fila:
+-- basta saber en qué nodo estamos. Cubre también TRUNCATE.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.edificios      FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.carreteras     FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.aceras         FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.parqueos       FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.zonas_verdes   FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.puntos_interes FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.iluminacion    FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+CREATE OR REPLACE TRIGGER tg_solo_dueno BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON {{ESQUEMA}}.accesibilidad  FOR EACH STATEMENT EXECUTE FUNCTION public.fn_solo_dueno({{ESQUEMA_ID}});
+
+-- ---------------------------------------------------------------------
 -- Trigger de auditoría: actualiza modificado_en en cada UPDATE
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE TRIGGER tg_modificado_en BEFORE UPDATE ON {{ESQUEMA}}.edificios      FOR EACH ROW EXECUTE FUNCTION public.fn_modificado_en();

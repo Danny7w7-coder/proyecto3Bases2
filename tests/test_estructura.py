@@ -135,6 +135,44 @@ def prueba_check_campus_dueno():
         conexion.close()
 
 
+def intentar_escribir(nodo, sql):
+    """Intenta una escritura y devuelve el mensaje de error, o None si se pudo. Siempre deshace."""
+    conexion = conectar(nodo, autocommit=False)
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(sql)
+        return None
+    except psycopg2.Error as error:
+        return error.diag.message_primary
+    finally:
+        conexion.rollback()
+        conexion.close()
+
+
+def prueba_trigger_replica_campus():
+    """Trigger: un campus no puede escribir en el esquema de otro campus"""
+    insertar = f"""INSERT INTO san_carlos.puntos_interes (campus_id, nombre, tipo, geom)
+                   VALUES (3, 'Intruso', 'otro', ST_SetSRID(ST_MakePoint(500000, 1090000), {SRID}))"""
+    error = intentar_escribir("cartago", insertar)
+    assert error and "solo lectura" in error, f"Cartago pudo insertar en san_carlos ({error})"
+    for sql in ["UPDATE san_carlos.edificios SET pisos = 9",
+                "DELETE FROM san_carlos.edificios",
+                "TRUNCATE san_carlos.edificios"]:
+        error = intentar_escribir("cartago", sql)
+        assert error and "solo lectura" in error, f"Cartago pudo hacer: {sql}"
+    # En su propio nodo, San Carlos sí puede
+    error = intentar_escribir("san_carlos", insertar)
+    assert error is None, f"San Carlos no pudo insertar en su esquema: {error}"
+    return "INSERT/UPDATE/DELETE/TRUNCATE rechazados"
+
+
+def prueba_trigger_replica_central():
+    """Trigger: el central no puede escribir en ningún esquema de campus"""
+    for _, esquema in CAMPUS:
+        error = intentar_escribir("central", f"DELETE FROM {esquema}.edificios")
+        assert error and "solo lectura" in error, f"el central pudo borrar en {esquema}"
+
+
 PRUEBAS = [
     prueba_nodos_postgis,
     prueba_capas_srid,
@@ -146,4 +184,6 @@ PRUEBAS = [
     prueba_ejemplo_enunciado,
     prueba_ubicacion_campus,
     prueba_check_campus_dueno,
+    prueba_trigger_replica_campus,
+    prueba_trigger_replica_central,
 ]
