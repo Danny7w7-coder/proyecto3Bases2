@@ -49,6 +49,14 @@ Base: `sigtec`. Usuario: `postgres`. Clave: la de `.env` (solo para pruebas).
 Cada campus tiene además el rol `sigtec_<campus>` (clave `EDITOR_PASSWORD` del `.env`).
 Ese rol lee todo y solo edita a través de las vistas `sig.*`.
 
+## Plugin de QGIS
+
+1. `python scripts/empaquetar_plugin.py` → `dist/sigtec.zip`
+2. En QGIS: **Complementos → Administrar e instalar → Instalar a partir de ZIP**
+3. Botón **TEC** → ingresar con un usuario de la tabla de abajo
+
+Detalle y prueba manual: [docs/INSTALAR_PLUGIN.md](docs/INSTALAR_PLUGIN.md)
+
 ## Usuarios de ejemplo (para el plugin)
 
 Clave de todos: `tec2026`

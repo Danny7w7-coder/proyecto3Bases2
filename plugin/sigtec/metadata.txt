@@ -1,0 +1,15 @@
+[general]
+name=SIG-TEC
+qgisMinimumVersion=3.22
+qgisMaximumVersion=4.99
+description=Ingreso al Sistema Distribuido de Información Geográfica de los campus del TEC
+about=Autentica al usuario contra el nodo central de SIG-TEC, se conecta al nodo de su campus y agrega al proyecto las 8 capas geográficas (vistas distribuidas) con los estilos institucionales. Cada usuario consulta todos los campus y edita solo los objetos de su campus. Proyecto 3 del curso Bases de Datos II, Instituto Tecnológico de Costa Rica.
+version=1.0.0
+author=Proyecto SIG-TEC (Bases de Datos II, TEC)
+email=sigtec@example.com
+category=Database
+tags=postgis,postgresql,tec,campus,distribuido
+icon=icon.png
+experimental=False
+deprecated=False
+supportsQt6=True
