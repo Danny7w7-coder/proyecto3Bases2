@@ -42,6 +42,26 @@ def docker_compose(*argumentos):
         sys.exit("ERROR: falló el comando de docker compose")
 
 
+def quitar_instalaciones_de_otra_carpeta():
+    """Los contenedores se llaman siempre sigtec_<nodo>. Si quedaron contenedores de SIG-TEC
+    creados desde OTRA carpeta del proyecto, chocarían con estos nombres. Se quitan los
+    contenedores y la red (los volúmenes con sus datos NO se borran)."""
+    resultado = subprocess.run(["docker", "ps", "-a", "--filter", "name=sigtec_", "--format", "{{.Names}}"],
+                               capture_output=True, text=True)
+    ajenos = []
+    for nombre in resultado.stdout.split():
+        carpeta = subprocess.run(
+            ["docker", "inspect", "-f", '{{index .Config.Labels "com.docker.compose.project.working_dir"}}', nombre],
+            capture_output=True, text=True).stdout.strip()
+        if os.path.normcase(os.path.normpath(carpeta)) != os.path.normcase(os.path.normpath(RAIZ)):
+            ajenos.append(nombre)
+    if ajenos:
+        print("  Hay contenedores de SIG-TEC de otra carpeta: se quitan para que no choquen los nombres")
+        print("  (sus datos quedan guardados en Docker, no se borran)")
+        subprocess.run(["docker", "rm", "-f", *ajenos], capture_output=True)
+        subprocess.run(["docker", "network", "rm", "sigtec_red"], capture_output=True)
+
+
 def archivos_del_nodo(nodo):
     """Lista ordenada de los .sql que le tocan al nodo (su carpeta + comun)."""
     carpeta = "central" if nodo == "central" else "campus"
@@ -84,6 +104,7 @@ def main():
     sin_datos = "--sin-datos" in sys.argv
 
     print("1. Docker")
+    quitar_instalaciones_de_otra_carpeta()
     if reset:
         print("  --reset: se borran contenedores y volúmenes")
         docker_compose("down", "-v", "--remove-orphans")

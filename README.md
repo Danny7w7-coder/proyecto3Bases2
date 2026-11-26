@@ -60,7 +60,7 @@ Instale estos programas antes de empezar. Todos son gratuitos.
 
 > **Importante al instalar Python en Windows:** en la primera pantalla del instalador marque la casilla **"Add python.exe to PATH"**.
 
-El proyecto fue probado en **Windows 11** con Docker Desktop, Python 3.12 y QGIS 3.44 LTR. Usa unos **2 GB** de disco y los puertos **5440 a 5445**.
+El proyecto fue probado en **Windows 11** (Docker Desktop, Python 3.12, QGIS 3.44 LTR) y en **Linux** (Ubuntu con Python 3.14). Usa unos **2 GB** de disco y los puertos **5440 a 5445**.
 
 ---
 
@@ -105,7 +105,7 @@ git --version
 
 Si alguno dice que el comando no se reconoce, ese programa no está instalado o no quedó en el PATH. Vea la [sección 8](#8-solución-de-problemas).
 
-> En macOS y Linux puede que el comando sea `python3` en lugar de `python`. Use `python3` en todos los pasos.
+> En macOS y Linux el comando es `python3 --version`. A partir del Paso 3 se usa un entorno virtual y el comando vuelve a ser `python`.
 
 ### Paso 2. Descargar el proyecto
 
@@ -131,11 +131,24 @@ Desde aquí, **todos los comandos se ejecutan dentro de esa carpeta**.
 
 El proyecto usa una sola librería, `psycopg2`, para conectarse a PostgreSQL.
 
+**En Windows:**
+
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Debe terminar con un mensaje como `Successfully installed psycopg2-binary...` o `Requirement already satisfied`.
+**En macOS y Linux** se usa un *entorno virtual*, porque estos sistemas no permiten instalar librerías de Python en el sistema:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+> En Ubuntu o Debian, si el primer comando dice que falta `venv` o `ensurepip`, instálelo antes con `sudo apt install python3-venv` y repita.
+> Mientras el entorno esté activo, el comando es `python`, igual que en Windows. Si abre otra terminal, vuelva a activarlo con `source .venv/bin/activate` dentro de la carpeta del proyecto.
+
+En los dos casos debe terminar con un mensaje como `Successfully installed psycopg2-binary...` o `Requirement already satisfied`.
 
 ### Paso 4. Encender Docker Desktop
 
