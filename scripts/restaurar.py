@@ -40,9 +40,11 @@ def compose(*argumentos):
 
 
 def nombre_volumen(nodo, tipo):
-    """Nombre real del volumen de Docker (ej. sig-tec_limon_data), buscado por la etiqueta de compose."""
-    resultado = subprocess.run(["docker", "volume", "ls", "-q", "--filter",
-                                f"label=com.docker.compose.volume={nodo}_{tipo}"],
+    """Nombre real del volumen de Docker (ej. sigtec_limon_data), buscado por las etiquetas de compose
+    (solo los de este proyecto, por si quedaron volúmenes viejos de otras instalaciones)."""
+    resultado = subprocess.run(["docker", "volume", "ls", "-q",
+                                "--filter", "label=com.docker.compose.project=sigtec",
+                                "--filter", f"label=com.docker.compose.volume={nodo}_{tipo}"],
                                capture_output=True, text=True, check=True)
     nombres = resultado.stdout.split()
     if not nombres:

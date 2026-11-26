@@ -14,13 +14,18 @@ import importlib
 import os
 import sys
 
-from comun import RAIZ
+from comun import RAIZ, revisar_servidores_de_esta_carpeta
 
 # Para poder importar los módulos de tests/ y de scripts/
 sys.path.insert(0, os.path.join(RAIZ, "tests"))
 
 
 def main():
+    problema = revisar_servidores_de_esta_carpeta()
+    if problema:
+        print(f"\nNo se pueden correr las pruebas.\n  {problema}\n")
+        sys.exit(1)
+
     filtro = sys.argv[1] if len(sys.argv) > 1 else ""
     archivos = sorted(glob.glob(os.path.join(RAIZ, "tests", "test_*.py")))
     aprobadas = 0

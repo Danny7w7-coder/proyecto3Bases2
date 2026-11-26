@@ -1,6 +1,11 @@
 # SIG-TEC: 1 nodo central + 5 nodos de campus, cada uno con PostgreSQL + PostGIS.
 # Los valores ${...} vienen del archivo .env
 
+# Nombre fijo del proyecto: los volúmenes se llaman sigtec_<nodo>_data sin importar
+# el nombre de la carpeta. Como los contenedores también tienen nombre fijo, hay
+# una sola instalación de SIG-TEC por computadora.
+name: sigtec
+
 # Configuración común a los 6 nodos (ancla YAML que se reutiliza abajo)
 x-nodo: &nodo
   build:

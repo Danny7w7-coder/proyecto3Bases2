@@ -89,6 +89,29 @@ def conectar(nodo, autocommit=True, usuario=None, clave=None):
     return conexion
 
 
+def revisar_servidores_de_esta_carpeta():
+    """Devuelve None si los servidores que corren son de ESTA carpeta del proyecto,
+    o un mensaje que explica qué hacer si no lo son (o si no están levantados).
+    Cada carpeta genera su propio .env con claves aleatorias: si los servidores son de otra
+    carpeta, las claves no coinciden y todo falla con 'password authentication failed'."""
+    import subprocess
+    try:
+        r = subprocess.run(["docker", "inspect", "-f",
+                            '{{index .Config.Labels "com.docker.compose.project.working_dir"}}', "sigtec_central"],
+                           capture_output=True, text=True)
+    except FileNotFoundError:
+        return "No se encontró Docker. Instale Docker Desktop y vuelva a intentar."
+    if r.returncode != 0:
+        if "Cannot connect" in r.stderr or "failed to connect" in r.stderr:
+            return "Docker Desktop no está encendido. Ábralo, espere a que diga 'Engine running' y vuelva a intentar."
+        return "Los servidores de SIG-TEC no están levantados. Ejecute: python scripts/init_all.py"
+    carpeta = r.stdout.strip()
+    if os.path.normcase(os.path.normpath(carpeta)) != os.path.normcase(os.path.normpath(RAIZ)):
+        return (f"Los servidores que están corriendo son de OTRA carpeta del proyecto:\n    {carpeta}\n"
+                f"  Para usar esta carpeta, ejecute: python scripts/init_all.py")
+    return None
+
+
 def contar(nodo, sql, parametros=None):
     """Ejecuta un SELECT count(*) (o cualquier valor único) en el nodo y lo devuelve."""
     conexion = conectar(nodo)

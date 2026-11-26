@@ -323,6 +323,7 @@ Explicación detallada:
 | `"python" no se reconoce como un comando` | Python no quedó en el PATH. Reinstálelo marcando **"Add python.exe to PATH"**, o use `py` en lugar de `python`. |
 | `ModuleNotFoundError: No module named 'psycopg2'` | Falta el [Paso 3](#paso-3-instalar-la-librería-de-python). |
 | `port is already allocated` o `Bind for 0.0.0.0:5440 failed` | Otro programa usa esos puertos. Cambie `PORT_CENTRAL`… `PORT_LIMON` en el archivo `.env` y ejecute `python scripts/init_all.py --reset`. |
+| `password authentication failed` o *"Los servidores que están corriendo son de OTRA carpeta"* | Los servidores se levantaron desde otra copia del proyecto, que tiene otras contraseñas. Ejecute `python scripts/init_all.py` en la carpeta que está usando. |
 | `estado_nodos.py` muestra un nodo **CAIDO** | Ejecute `python scripts/init_all.py`. Si persiste, use `--reset`. |
 | La replicación no avanza (`verificar_consistencia.py` dice **DIFERENTE**) | Ejecute `python scripts/replicacion.py reactivar` y espere unos segundos. |
 | El plugin dice "No se pudo conectar" | El sistema no está levantado o Docker está apagado. Haga los pasos 4 y 5. |

@@ -126,21 +126,8 @@ function Install-SigTec {
     # -----------------------------------------------------------------
     Write-Paso 4 "Levantando los 6 servidores (unos 2 minutos; la primera vez descarga la imagen)"
 
-    # Si hay contenedores de SIG-TEC de otra carpeta, se quitan para que no choquen los nombres.
-    # (Sus datos quedan guardados en Docker; no se borran.)
-    $ajenos = @()
-    foreach ($nombre in @(docker ps -a --filter "name=sigtec_" --format "{{.Names}}")) {
-        if (-not $nombre) { continue }
-        $etiquetas = (docker inspect $nombre | ConvertFrom-Json)[0].Config.Labels
-        $carpeta_del_contenedor = $etiquetas."com.docker.compose.project.working_dir"
-        if ($carpeta_del_contenedor -ne $destino) { $ajenos += $nombre }
-    }
-    if ($ajenos.Count -gt 0) {
-        Write-Aviso "Se encontro otra instalacion de SIG-TEC. Se detienen sus contenedores (sus datos no se borran)."
-        docker rm -f $ajenos *> $null
-        docker network rm sigtec_red *> $null
-    }
-
+    # Si ya hay una instalacion de SIG-TEC desde otra carpeta, init_all.py la reemplaza
+    # (solo puede haber una por computadora) y lo explica en pantalla.
     $env:PYTHONIOENCODING = "utf-8"
     & $python scripts/init_all.py --reset
     if ($LASTEXITCODE -ne 0) { Stop-ConError "Fallo la puesta en marcha. Revise el mensaje de arriba y la seccion 'Solucion de problemas' del README." }

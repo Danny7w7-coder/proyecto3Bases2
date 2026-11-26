@@ -4,7 +4,7 @@ y los parámetros que necesita el proyecto (replicación lógica, 2PC y WAL).
 
 Uso: python scripts/estado_nodos.py
 """
-from comun import NODOS, conectar
+from comun import NODOS, conectar, revisar_servidores_de_esta_carpeta
 
 # Parámetros a revisar y el valor esperado (None = solo mostrar)
 PARAMETROS = {
@@ -41,6 +41,9 @@ def estado(nodo):
 
 
 def main():
+    problema = revisar_servidores_de_esta_carpeta()
+    if problema:
+        print(f"AVISO: {problema}\n")
     titulos = ["nodo", "pg", "postgis", "pgcrypto", *PARAMETROS, "wal ok/fallo", "estado"]
     filas = []
     todo_ok = True

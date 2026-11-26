@@ -42,10 +42,10 @@ def docker_compose(*argumentos):
         sys.exit("ERROR: falló el comando de docker compose")
 
 
-def quitar_instalaciones_de_otra_carpeta():
-    """Los contenedores se llaman siempre sigtec_<nodo>. Si quedaron contenedores de SIG-TEC
-    creados desde OTRA carpeta del proyecto, chocarían con estos nombres. Se quitan los
-    contenedores y la red (los volúmenes con sus datos NO se borran)."""
+def hay_instalacion_de_otra_carpeta():
+    """Hay una sola instalación de SIG-TEC por computadora (contenedores y volúmenes con nombre fijo).
+    Si la que existe se creó desde OTRA carpeta del proyecto, tiene otras contraseñas (otro .env).
+    En ese caso se quitan sus contenedores y la red, y se devuelve True para empezar de cero."""
     resultado = subprocess.run(["docker", "ps", "-a", "--filter", "name=sigtec_", "--format", "{{.Names}}"],
                                capture_output=True, text=True)
     ajenos = []
@@ -56,10 +56,11 @@ def quitar_instalaciones_de_otra_carpeta():
         if os.path.normcase(os.path.normpath(carpeta)) != os.path.normcase(os.path.normpath(RAIZ)):
             ajenos.append(nombre)
     if ajenos:
-        print("  Hay contenedores de SIG-TEC de otra carpeta: se quitan para que no choquen los nombres")
-        print("  (sus datos quedan guardados en Docker, no se borran)")
+        print("  Había una instalación de SIG-TEC creada desde otra carpeta (con otras contraseñas).")
+        print("  Como solo puede haber una por computadora, se reemplaza: se empieza de cero.")
         subprocess.run(["docker", "rm", "-f", *ajenos], capture_output=True)
         subprocess.run(["docker", "network", "rm", "sigtec_red"], capture_output=True)
+    return bool(ajenos)
 
 
 def archivos_del_nodo(nodo):
@@ -104,7 +105,8 @@ def main():
     sin_datos = "--sin-datos" in sys.argv
 
     print("1. Docker")
-    quitar_instalaciones_de_otra_carpeta()
+    if hay_instalacion_de_otra_carpeta():
+        reset = True  # sus datos tienen otras contraseñas: no se pueden reutilizar
     if reset:
         print("  --reset: se borran contenedores y volúmenes")
         docker_compose("down", "-v", "--remove-orphans")
