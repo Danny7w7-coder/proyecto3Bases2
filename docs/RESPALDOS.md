@@ -1,92 +1,227 @@
 # Respaldo y recuperación
 
-Cada nodo tiene su propia estrategia. Todo se maneja con scripts de Python en `scripts/`.
+Cómo se respaldan los seis servidores de SIG-TEC y cómo se recupera un servidor ante un error o una falla.
 
-## 1. Mecanismos
+[← Volver al README](../README.md)
 
-| Mecanismo | Cómo | Comando | Dónde queda |
-|---|---|---|---|
-| Respaldo lógico | `pg_dump -Fc` de la base completa y del esquema propio del nodo (`public` en el central) | `python scripts/respaldos.py logico [nodo\|todos]` | `backups/<nodo>/logico/<nodo>_completo_<fecha>.dump` y `<nodo>_esquema_<esquema>_<fecha>.dump` |
-| Verificación del lógico | Se restaura el último `.dump` completo en una base nueva (`verificacion_respaldo`) y se comparan las filas tabla por tabla | `python scripts/respaldos.py verificar <nodo>` | La base de prueba se borra al terminar |
-| Respaldo físico | `pg_basebackup -D - -Ft -z -X fetch -c fast`: un `.tar.gz` con todo el cluster y el WAL necesario | `python scripts/respaldos.py fisico [nodo\|todos]` | `backups/<nodo>/fisico/<nodo>_base_<fecha>.tar.gz` |
-| WAL | `archive_mode = on` y `archive_command = 'test ! -f /wal_archive/%f && cp %p /wal_archive/%f'`. Con `archive_timeout = 60` se archiva al menos un segmento por minuto | Automático. Estado en `python scripts/respaldos.py listar` | Volumen `<nodo>_wal`, aparte del volumen de datos |
-| PITR | Respaldo físico + WAL hasta `recovery_target_time` | `python scripts/restaurar.py pitr <campus> "<hora UTC>"` | |
-| Recuperación con replicación lógica | Nodo nuevo y vacío. Su esquema se rescata de la copia del central (publicación y suscripción temporales) | `python scripts/restaurar.py desde_central <campus>` | |
-| Prueba de recuperación | Falla simulada: se borran el contenedor y el volumen de datos | `python scripts/simular_falla.py <campus>` | |
+---
 
-Los respaldos se guardan en el anfitrión porque el comando corre dentro del contenedor (`docker exec`) y su salida se escribe directo en el archivo. No hace falta montar carpetas de Windows.
+## Tabla de contenidos
 
-## 2. Restauración física paso a paso (`scripts/restaurar.py`)
+1. [Antes de empezar](#1-antes-de-empezar)
+2. [Mecanismos de respaldo](#2-mecanismos-de-respaldo)
+3. [Hacer respaldos](#3-hacer-respaldos)
+4. [Escenario A: borrado por error y recuperación a un instante (PITR)](#4-escenario-a-borrado-por-error-y-recuperación-a-un-instante-pitr)
+5. [Escenario B: pérdida completa de un servidor](#5-escenario-b-pérdida-completa-de-un-servidor)
+6. [Recuperar a mano, paso a paso](#6-recuperar-a-mano-paso-a-paso)
+7. [Cómo funciona por dentro](#7-cómo-funciona-por-dentro)
+8. [Resumen de comandos](#8-resumen-de-comandos)
 
-1. Si el nodo está vivo, `pg_switch_wal()` y esperar a que ese WAL quede archivado.
-2. `docker compose stop <nodo>`
-3. Un contenedor auxiliar vacía el volumen de datos y descomprime el respaldo. El `.tar.gz` le llega por la entrada estándar.
-4. Se crea `recovery.signal` y se agrega a `postgresql.auto.conf`:
+---
+
+## 1. Antes de empezar
+
+- Todos los comandos se ejecutan en la terminal, dentro de la carpeta del proyecto, con el sistema levantado (`python scripts/estado_nodos.py` debe terminar con `TODO OK`).
+- **Atención:** los escenarios de esta guía **apagan, borran y restauran servidores de verdad**. Es seguro hacerlo, porque todo vuelve a quedar bien. Aun así, no los ejecute mientras otra persona usa el sistema.
+- Los respaldos se guardan en la carpeta `backups/` del proyecto. Esa carpeta no se sube al repositorio.
+
+---
+
+## 2. Mecanismos de respaldo
+
+Cada servidor tiene su propia estrategia de respaldo:
+
+| Mecanismo | Qué es | Para qué sirve |
+|---|---|---|
+| **Respaldo lógico** (`pg_dump`) | Una copia de la base completa y otra del esquema propio del servidor | Restaurar tablas o datos puntuales. Se puede abrir en otro servidor |
+| **Respaldo físico** (`pg_basebackup`) | Una copia exacta de todos los archivos del servidor, comprimida | Reconstruir un servidor completo |
+| **WAL archivado** | El registro de **cada cambio** que se hace en la base. Se copia continuamente a un espacio aparte, al menos una vez por minuto | Junto con el respaldo físico, permite volver a **cualquier instante** (PITR) |
+| **Replicación lógica** | Las copias que el central tiene de cada campus | Recuperar un campus desde el central sin usar respaldos |
+
+---
+
+## 3. Hacer respaldos
+
+| Comando | Qué hace | Resultado esperado |
+|---|---|---|
+| `python scripts/respaldos.py logico todos` | Respaldo lógico de los 6 servidores | Dos archivos `.dump` por servidor en `backups/<nodo>/logico/` |
+| `python scripts/respaldos.py verificar cartago` | Restaura el último respaldo lógico de Cartago en una base de prueba y compara las filas | `... restaurado en 'verificacion_respaldo': N filas (original N) -> OK` |
+| `python scripts/respaldos.py fisico todos` | Respaldo físico de los 6 servidores | Un archivo `.tar.gz` por servidor en `backups/<nodo>/fisico/` (unos 7.5 MB, 2 segundos cada uno) |
+| `python scripts/respaldos.py listar` | Lista los respaldos y el estado del WAL archivado | Los archivos guardados y, por servidor, cuántos WAL se archivaron y cuántos fallaron (debe ser 0) |
+
+En lugar de `todos` se puede indicar un solo servidor: `central`, `cartago`, `san_jose`, `san_carlos`, `alajuela` o `limon`.
+
+---
+
+## 4. Escenario A: borrado por error y recuperación a un instante (PITR)
+
+**Situación:** alguien borra por error todos los puntos de interés y las luminarias de San Carlos. Como la replicación copia todo, **el error también llega al central y a los demás campus en menos de un segundo**. La replicación no protege contra errores humanos. Para eso está la recuperación a un instante (PITR).
+
+**Comando:**
+
+```powershell
+python scripts/escenarios.py a
+```
+
+**Duración:** unos 20 segundos. El script muestra cada paso:
+
+| Paso | Qué ocurre |
+|---|---|
+| A.1 | Se hace un respaldo físico de San Carlos |
+| A.2 | Se crea un edificio nuevo **después** del respaldo y se anota la hora exacta |
+| A.3 | **El error:** se borran los puntos de interés y las luminarias. El borrado aparece también en el central y en Cartago |
+| A.4 | Se restaura San Carlos con el respaldo físico y se aplica el WAL **hasta un segundo antes del borrado**. El registro de PostgreSQL dice *"recovery stopping before commit of transaction…"*, es decir, se detuvo justo antes del error. Después se vuelve a enganchar la replicación |
+| A.5 | Comprobación |
+
+**Resultado esperado (A.5):**
+
+```
+  puntos               7 (esperado 7) OK
+  luminarias           8 (esperado 8) OK
+  puntos_en_cartago    7 (esperado 7) OK
+  edificio_posterior   1 (esperado 1) OK
+  consistencia: 40 capas OK
+```
+
+- Los datos borrados volvieron **en los seis servidores**.
+- El edificio creado **después** del respaldo también está. Lo recuperó el WAL.
+- Lo que se hubiera hecho en San Carlos entre el error y la recuperación se pierde. Eso es lo que significa volver a un instante.
+
+---
+
+## 5. Escenario B: pérdida completa de un servidor
+
+**Situación:** se pierde por completo el servidor de Limón. Se borran su contenedor y su disco de datos.
+
+Hay **dos formas** de recuperarlo:
+
+### 5.1 Con el respaldo físico
+
+```powershell
+python scripts/escenarios.py b fisico
+```
+
+**Duración:** unos 20 segundos. Se hace un respaldo, se crea un punto de interés nuevo, se borra el servidor y se restaura con el **último respaldo físico más todo el WAL archivado**.
+
+### 5.2 Desde el nodo central (replicación lógica)
+
+```powershell
+python scripts/escenarios.py b desde_central
+```
+
+**Duración:** unos 30 segundos. Se crea un servidor de Limón **nuevo y vacío**. Se le crean las tablas y sus datos se **rescatan de la copia que tiene el central**.
+
+### 5.3 Resultado esperado (en los dos casos)
+
+```
+  punto_reciente       1 (esperado 1) OK
+  puntos_limon         8 (esperado 8) OK
+  vista_con_5_campus   5 (esperado 5) OK
+  edicion_despues      1 (esperado 1) OK
+  consistencia: 40 capas OK
+```
+
+Limón vuelve con todos sus datos, ve los cinco campus y se puede editar otra vez.
+
+### 5.4 Comparación
+
+| | Con respaldo físico | Desde el central |
+|---|---|---|
+| Depende de | Los respaldos del propio servidor | Que el central esté funcionando |
+| Puede perder | Los cambios que no alcanzaron a archivarse (hasta 1 minuto) | Nada que ya haya llegado al central |
+| Recupera | Todo el servidor: datos, usuarios y configuración | Los datos. La estructura se vuelve a crear con los scripts del proyecto |
+| Tiempo medido | 10 a 15 segundos | 20 a 25 segundos |
+
+---
+
+## 6. Recuperar a mano, paso a paso
+
+Los escenarios anteriores hacen todo solos. Para hacer una recuperación manualmente:
+
+### 6.1 Recuperación a un instante (PITR)
+
+1. Antes de tener un problema, haga un respaldo físico:
+   ```powershell
+   python scripts/respaldos.py fisico san_carlos
    ```
-   restore_command = 'cp /wal_archive/%f %p'
-   recovery_target_time = '2026-11-24 20:00:11+00'   # solo en PITR
+2. Anote la hora del servidor. Está en hora UTC, seis horas más que la hora de Costa Rica:
+   ```powershell
+   docker exec sigtec_san_carlos psql -U postgres -d sigtec -tAc "SELECT now()::timestamptz(0)"
+   ```
+3. *(Ocurre el error.)*
+4. Recupere el servidor hasta la hora anotada:
+   ```powershell
+   python scripts/restaurar.py pitr san_carlos "2026-11-24 20:11:23+00"
+   ```
+
+### 6.2 Servidor perdido
+
+```powershell
+python scripts/simular_falla.py limon          # simula la pérdida: borra el contenedor y sus datos
+python scripts/restaurar.py fisico limon       # opción 1: con el último respaldo físico + WAL
+python scripts/restaurar.py desde_central limon  # opción 2: desde la copia del central
+```
+
+Al final de cualquier recuperación, compruebe con:
+
+```powershell
+python scripts/verificar_consistencia.py --resumen
+```
+
+Debe decir `40 capas OK, 0 DIFERENTES`.
+
+---
+
+## 7. Cómo funciona por dentro
+
+### 7.1 Restaurar un respaldo físico
+
+1. Se detiene el servidor.
+2. Se borran sus datos y se descomprime el respaldo en su lugar.
+3. Se le indica a PostgreSQL **de dónde leer el WAL** y, en el caso de PITR, **hasta qué hora aplicarlo**:
+   ```
+   restore_command        = 'cp /wal_archive/%f %p'
+   recovery_target_time   = '2026-11-24 20:11:23+00'
    recovery_target_action = 'promote'
    ```
-5. `docker compose start <nodo>`. PostgreSQL aplica el WAL. En PITR se detiene justo antes de la primera transacción posterior a la hora indicada. Después se promueve a un **timeline** nuevo.
-6. `ALTER SYSTEM RESET` de esos tres parámetros.
+4. Se enciende el servidor. PostgreSQL aplica los cambios del WAL hasta la hora indicada y queda listo para trabajar.
 
-## 3. Reenganche de la replicación (`replicacion.py resincronizar <campus>`)
+### 7.2 Volver a enganchar la replicación
 
-Restaurar un nodo **rompe su replicación lógica**:
-- `pg_basebackup` **no copia los slots de replicación**, así que el central ya no puede leer del nodo restaurado.
-- El nodo restaurado puede estar **"más atrás"** que lo que ya tiene el central. Por ejemplo, en PITR el central ya recibió el borrado erróneo.
+Restaurar un servidor **rompe su replicación**, por dos razones:
 
-La regla es que **el nodo restaurado manda sobre su esquema** y **el central manda sobre los demás**:
+- El respaldo físico **no incluye** los puntos de conexión de la replicación (*slots*).
+- El servidor restaurado puede tener datos **más viejos** que los que ya recibió el central.
 
-1. Se sueltan las suscripciones viejas del campus (`DISABLE` + `slot_name = NONE` + `DROP`) y los slots huérfanos.
-2. En el central se vacía la copia de ese campus. El `TRUNCATE` viaja a los otros 4 campus por el nivel 2.
-3. En el campus se vacían las copias de los otros 4 y los estilos.
-4. Se crean otra vez las suscripciones con `copy_data = true`, primero el nivel 1 y luego el nivel 2.
+Por eso toda recuperación termina con una **resincronización**, que sigue una regla simple: **el servidor restaurado manda sobre sus propios datos, y el central manda sobre los de los demás.**
 
-`TRUNCATE` se hace con `session_replication_role = replica`, para que los triggers de protección no lo bloqueen. Es lo mismo que hace la replicación al aplicar datos.
+1. Se quitan las suscripciones viejas de ese campus.
+2. El central vacía su copia de ese campus y la vuelve a copiar desde el servidor restaurado. Los otros campus reciben el cambio por el nivel 2.
+3. El servidor restaurado vacía sus copias de los otros campus y las vuelve a copiar desde el central.
 
-## 4. Escenarios demostrables
+Se puede ejecutar sola: `python scripts/replicacion.py resincronizar limon`
 
-`python scripts/escenarios.py a`, `python scripts/escenarios.py b fisico` y `python scripts/escenarios.py b desde_central`. Los tres también corren en `tests/test_respaldos.py`.
+### 7.3 Notas
 
-### Escenario A: se borran datos por error en San Carlos → PITR
+- En este proyecto el WAL archivado está en la misma computadora, en un espacio aparte del de los datos. En una instalación real debería estar **en otro disco o en otro servidor**.
+- Después de una recuperación a un instante, conviene hacer un respaldo físico nuevo.
 
-| Paso | Qué pasa |
+---
+
+## 8. Resumen de comandos
+
+| Comando | Qué hace |
 |---|---|
-| 1 | Respaldo físico de San Carlos |
-| 2 | Se crea un edificio **después** del respaldo |
-| 3 | Se anota la hora T (`SELECT now()`) |
-| 4 | **Error:** `DELETE` de todos los puntos de interés y luminarias. **El borrado se replica** al central y a Cartago en menos de 1 s. La replicación no protege contra errores humanos |
-| 5 | PITR hasta T. El log dice: *recovery stopping before commit of transaction …*, es decir, se detuvo justo antes del DELETE |
-| 6 | Resincronización. Los datos vuelven también al central y a los otros campus |
-| Resultado | 7 puntos y 8 luminarias de vuelta. **El edificio del paso 2 sigue** (lo recuperó el WAL). 40 capas OK |
-| Tiempos | Restaurar + WAL: ~6 s. Resincronizar: ~4 a 7 s |
-
-Lo que se hizo en San Carlos entre T y el PITR se pierde. Eso es lo que significa volver a un instante.
-
-### Escenario B: se pierde el nodo de Limón completo
-
-| Paso | Qué pasa |
-|---|---|
-| 1 | (modo `fisico`) Respaldo físico de Limón |
-| 2 | Se crea un punto de interés nuevo. Llega al central y se archiva su WAL |
-| 3 | **Falla:** `docker compose rm -s -f limon` + `docker volume rm sig-tec_limon_data` |
-| 4a | **Modo `fisico`:** último respaldo + todo el WAL archivado + resincronización |
-| 4b | **Modo `desde_central`:** contenedor nuevo, `initdb`, los SQL del proyecto, rescate del esquema `limon` desde el central, `setval` de la secuencia y resincronización |
-| Resultado | El punto del paso 2 está, la vista muestra los 5 campus, una edición nueva llega a Cartago y las 40 capas están OK |
-| Tiempos | `fisico`: ~9 a 13 s desde la falla. `desde_central`: ~13 a 26 s |
-
-**Comparación de los dos modos:**
-
-| | Físico + WAL | Desde el central |
-|---|---|---|
-| Depende de | Respaldos propios del nodo (independiente del central) | Que el central esté vivo y al día |
-| Puede perder | Lo que no alcanzó a archivarse (hasta 60 s con `archive_timeout = 60`) | Nada que ya haya llegado al central |
-| Recupera | Todo el cluster: roles, configuración, historial | Solo los datos. La estructura se rehace con los SQL del proyecto |
-| Detalle | Abre un timeline nuevo | El WAL viejo del nodo se aparta a `/wal_archive/anterior_<fecha>/`, porque el nodo nuevo reinicia la numeración |
-
-## 5. Notas
-
-- En el proyecto el volumen del WAL está en la misma máquina. En producción estaría en **otro disco u otro servidor**, porque si se pierde junto con los datos no hay PITR posible.
-- Después de un PITR conviene sacar un respaldo físico nuevo, porque el nodo está en otro timeline.
-- `backups/` está en `.gitignore`: los respaldos no van al repositorio ni al zip de entrega.
+| `python scripts/respaldos.py logico todos` | Respaldo lógico de todos los servidores |
+| `python scripts/respaldos.py fisico todos` | Respaldo físico de todos los servidores |
+| `python scripts/respaldos.py verificar <nodo>` | Comprueba que el respaldo lógico se puede restaurar |
+| `python scripts/respaldos.py listar` | Lista los respaldos y el estado del WAL |
+| `python scripts/escenarios.py a` | Escenario A: borrado por error y PITR |
+| `python scripts/escenarios.py b fisico` | Escenario B: servidor perdido, recuperado con respaldo físico |
+| `python scripts/escenarios.py b desde_central` | Escenario B: servidor perdido, recuperado desde el central |
+| `python scripts/restaurar.py pitr <campus> "<hora UTC>"` | Recupera un campus hasta una hora exacta |
+| `python scripts/restaurar.py fisico <campus>` | Recupera un campus con su último respaldo físico |
+| `python scripts/restaurar.py desde_central <campus>` | Recupera un campus desde la copia del central |
+| `python scripts/simular_falla.py <campus>` | Simula la pérdida completa de un campus |
+| `python scripts/replicacion.py resincronizar <campus>` | Vuelve a enganchar la replicación de un campus |
+| `python scripts/correr_pruebas.py respaldos` | Pruebas automáticas de respaldo y recuperación |
