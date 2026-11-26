@@ -18,7 +18,8 @@ from comun import RAIZ
 DESTINO = os.path.join(os.path.dirname(RAIZ), "sig-tec.zip")
 EXCLUIR_CARPETAS = {".git", "backups", "__pycache__", ".vscode", ".venv"}
 # Documentos de trabajo del grupo: se quedan en la computadora, no van en la entrega
-SOLO_LOCALES = {"docs/DECISIONES.md", "docs/GUION_VIDEO.md", "docs/CHECKLIST_ENUNCIADO.md"}
+SOLO_LOCALES = {"docs/DECISIONES.md", "docs/GUION_VIDEO.md", "docs/CHECKLIST_ENUNCIADO.md",
+                "pruebas_resultado.txt"}  # este último lo crea la preparación del video
 
 
 def main():
