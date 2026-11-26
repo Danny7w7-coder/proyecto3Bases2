@@ -13,6 +13,7 @@ Profesor: Msc. Leonardo Víquez Acuña
 1. [¿Qué es SIG-TEC?](#1-qué-es-sig-tec)
 2. [Requisitos](#2-requisitos)
 3. [Instalación paso a paso](#3-instalación-paso-a-paso)
+   - [Opción rápida: un solo comando (Windows)](#opción-rápida-un-solo-comando-windows)
    - [Paso 1. Verificar los programas](#paso-1-verificar-los-programas)
    - [Paso 2. Descargar el proyecto](#paso-2-descargar-el-proyecto)
    - [Paso 3. Instalar la librería de Python](#paso-3-instalar-la-librería-de-python)
@@ -64,6 +65,31 @@ El proyecto fue probado en **Windows 11** con Docker Desktop, Python 3.12 y QGIS
 ---
 
 ## 3. Instalación paso a paso
+
+### Opción rápida: un solo comando (Windows)
+
+Con **Docker Desktop** y **Python** ya instalados ([sección 2](#2-requisitos)), abra **PowerShell**, pegue este comando y presione **Enter**:
+
+```powershell
+irm https://raw.githubusercontent.com/Danny7w7-coder/proyecto3Bases2/main/instalar.ps1 | iex
+```
+
+El script [`instalar.ps1`](instalar.ps1) hace solo los pasos 1 al 6 de abajo:
+
+1. Revisa que Python y Docker estén instalados, enciende Docker Desktop si está apagado y comprueba que los puertos estén libres.
+2. Descarga el proyecto en la carpeta `C:\Users\<su usuario>\SIG-TEC`.
+3. Instala la librería de Python.
+4. Levanta los seis servidores y deja todo listo.
+5. Muestra el estado de los servidores.
+6. Deja la ventana dentro de la carpeta del proyecto y muestra los siguientes comandos.
+
+**Tiempo:** unos 2 a 3 minutos, y más la primera vez por la descarga de la imagen. Al final debe aparecer **SIG-TEC esta listo**. Desde ahí puede seguir con las [pruebas automáticas](#4-pruebas-automáticas) y las [demostraciones](#6-demostraciones).
+
+> Si algo falta, el script se detiene, explica qué hacer y deja la ventana abierta. Se puede volver a ejecutar las veces que haga falta.
+
+Si prefiere hacerlo a mano, o usa macOS o Linux, siga los pasos de abajo.
+
+---
 
 Todos los comandos se escriben en una terminal: **PowerShell** en Windows, o **Terminal** en macOS y Linux. Escriba cada comando, presione **Enter** y espere a que termine antes de escribir el siguiente.
 
@@ -324,6 +350,7 @@ Para entrar a la base de un nodo desde la terminal: `docker exec -it sigtec_cart
 ```
 sig-tec/
 ├── README.md               esta guía
+├── instalar.ps1            instalación con un solo comando (Windows)
 ├── docker-compose.yml      los 6 servidores
 ├── .env.example            plantilla de configuración (el .env real se crea solo)
 ├── requirements.txt        librería de Python necesaria
