@@ -22,6 +22,7 @@ Profesor: Msc. Leonardo Víquez Acuña
    - [Paso 6. Comprobar que todo funciona](#paso-6-comprobar-que-todo-funciona)
 4. [Pruebas automáticas](#4-pruebas-automáticas)
 5. [Uso desde QGIS (plugin SIG-TEC)](#5-uso-desde-qgis-plugin-sig-tec)
+   - [5.4 Gestionar usuarios](#54-gestionar-usuarios)
 6. [Demostraciones](#6-demostraciones)
 7. [Apagar y volver a empezar](#7-apagar-y-volver-a-empezar)
 8. [Solución de problemas](#8-solución-de-problemas)
@@ -263,6 +264,23 @@ python scripts/correr_pruebas.py
 
 La guía completa del plugin, con una prueba de 11 pasos, está en [docs/INSTALAR_PLUGIN.md](docs/INSTALAR_PLUGIN.md).
 
+### 5.4 Gestionar usuarios
+
+Los usuarios se guardan en el nodo central. Se administran con este script:
+
+| Quiero… | Comando |
+|---|---|
+| Ver todos los usuarios | `python scripts/usuarios.py listar` |
+| Crear un usuario | `python scripts/usuarios.py crear ana san_carlos` |
+| Desactivar un usuario (ya no puede ingresar) | `python scripts/usuarios.py desactivar ana` |
+| Volver a activarlo | `python scripts/usuarios.py activar ana` |
+| Cambiar su contraseña | `python scripts/usuarios.py clave ana` |
+
+- El campus se escribe con su número (1 a 5) o su nombre: `cartago`, `san_jose`, `san_carlos`, `alajuela` o `limon`.
+- El script pide la contraseña sin mostrarla en pantalla. Debe tener al menos 6 caracteres.
+- La contraseña se guarda cifrada con bcrypt, igual que la de los usuarios de ejemplo.
+- Desactivar no borra al usuario. Solo le impide ingresar desde el plugin.
+
 ---
 
 ## 6. Demostraciones
@@ -340,7 +358,7 @@ Explicación detallada:
 | **Modelo de datos** | Cada nodo tiene 5 esquemas (uno por campus) con 8 capas. Sistema de coordenadas institucional EPSG:5367 (CRTM05). Cada objeto tiene un id global y el campus al que pertenece | [sql/comun/10_capas_por_esquema.sql](sql/comun/10_capas_por_esquema.sql) |
 | **Replicación** | Nivel 1: campus → central. Nivel 2: central → los otros 4 campus, más los estilos | [scripts/replicacion.py](scripts/replicacion.py) |
 | **Vistas distribuidas** | Cada capa de QGIS es una vista que une los 5 esquemas. Los disparadores `INSTEAD OF` deciden si una edición se permite | [sql/campus/31_vistas.sql](sql/campus/31_vistas.sql) |
-| **Autenticación** | Usuarios con contraseñas cifradas (bcrypt) en el nodo central. El plugin solo puede llamar a la función `autenticar()` | [sql/central/21_autenticacion.sql](sql/central/21_autenticacion.sql) |
+| **Autenticación** | Usuarios con contraseñas cifradas (bcrypt) en el nodo central. El plugin solo puede llamar a la función `autenticar()`. Los usuarios se administran con `scripts/usuarios.py` | [sql/central/21_autenticacion.sql](sql/central/21_autenticacion.sql) |
 | **Estilos** | Tabla `layer_styles` con versiones, guardada en el central y replicada a los campus | [scripts/generar_estilos.py](scripts/generar_estilos.py) |
 | **Transacciones distribuidas** | Atomicidad de la replicación, modo síncrono y commit en dos fases | [docs/TRANSACCIONES.md](docs/TRANSACCIONES.md) |
 | **Respaldo y recuperación** | `pg_dump`, `pg_basebackup`, WAL archivado, PITR y recuperación de un nodo | [docs/RESPALDOS.md](docs/RESPALDOS.md) |
