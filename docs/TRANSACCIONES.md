@@ -119,7 +119,7 @@ La replicación envía cada transacción **completa** y **solo después de confi
 python scripts/modo_sincrono.py demo
 ```
 
-**Duración:** unos 40 segundos. **Atención:** apaga y enciende el nodo central durante la prueba.
+**Duración:** entre 40 y 60 segundos. **Atención:** apaga y enciende el nodo central durante la prueba.
 
 **Resultados medidos** (San Carlos, 100 confirmaciones):
 

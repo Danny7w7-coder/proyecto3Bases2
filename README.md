@@ -275,10 +275,12 @@ Estos comandos muestran cada parte del proyecto. Se recomienda ejecutarlos **en 
 | 2 | `python scripts/replicacion.py estado` | Las publicaciones y suscripciones de los dos niveles de replicación | 2 s |
 | 3 | `python scripts/verificar_consistencia.py` | Compara las 40 capas en los 6 nodos y muestra el retraso de la replicación | 5 s |
 | 4 | `python scripts/demo_2pc.py` | **Commit en dos fases** entre el central y San Carlos: éxito, falla y caída del coordinador | 5 s |
-| 5 | `python scripts/modo_sincrono.py demo` | Replicación **asíncrona contra síncrona**. *Apaga y enciende el nodo central* | 40 s |
-| 6 | `python scripts/escenarios.py a` | **Escenario A:** borrado por error en San Carlos y recuperación a un instante exacto (PITR) | 20 s |
-| 7 | `python scripts/escenarios.py b fisico` | **Escenario B:** se pierde el nodo de Limón y se restaura con el respaldo físico | 20 s |
-| 8 | `python scripts/escenarios.py b desde_central` | **Escenario B:** se pierde Limón y se recupera desde el central con replicación lógica | 30 s |
+| 5 | `python scripts/modo_sincrono.py demo` | Replicación **asíncrona contra síncrona**. *Apaga y enciende el nodo central* | 40 a 60 s |
+| 6 | `python scripts/escenarios.py a` | **Escenario A:** borrado por error en San Carlos y recuperación a un instante exacto (PITR) | 20 a 50 s |
+| 7 | `python scripts/escenarios.py b fisico` | **Escenario B:** se pierde el nodo de Limón y se restaura con el respaldo físico | 20 a 45 s |
+| 8 | `python scripts/escenarios.py b desde_central` | **Escenario B:** se pierde Limón y se recupera desde el central con replicación lógica | 30 a 60 s |
+
+> Los tiempos de los escenarios cambian de una corrida a otra, según qué tan ocupada esté la computadora. Lo que más varía es cuánto tarda Docker en arrancar un servidor.
 
 Explicación detallada:
 

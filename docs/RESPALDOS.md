@@ -63,7 +63,7 @@ En lugar de `todos` se puede indicar un solo servidor: `central`, `cartago`, `sa
 python scripts/escenarios.py a
 ```
 
-**Duración:** unos 20 segundos. El script muestra cada paso:
+**Duración:** entre 20 y 50 segundos. El script muestra cada paso:
 
 | Paso | Qué ocurre |
 |---|---|
@@ -101,7 +101,7 @@ Hay **dos formas** de recuperarlo:
 python scripts/escenarios.py b fisico
 ```
 
-**Duración:** unos 20 segundos. Se hace un respaldo, se crea un punto de interés nuevo, se borra el servidor y se restaura con el **último respaldo físico más todo el WAL archivado**.
+**Duración:** entre 20 y 45 segundos. Se hace un respaldo, se crea un punto de interés nuevo, se borra el servidor y se restaura con el **último respaldo físico más todo el WAL archivado**.
 
 ### 5.2 Desde el nodo central (replicación lógica)
 
@@ -109,7 +109,7 @@ python scripts/escenarios.py b fisico
 python scripts/escenarios.py b desde_central
 ```
 
-**Duración:** unos 30 segundos. Se crea un servidor de Limón **nuevo y vacío**. Se le crean las tablas y sus datos se **rescatan de la copia que tiene el central**.
+**Duración:** entre 30 y 60 segundos. Se crea un servidor de Limón **nuevo y vacío**. Se le crean las tablas y sus datos se **rescatan de la copia que tiene el central**.
 
 ### 5.3 Resultado esperado (en los dos casos)
 
@@ -130,7 +130,7 @@ Limón vuelve con todos sus datos, ve los cinco campus y se puede editar otra ve
 | Depende de | Los respaldos del propio servidor | Que el central esté funcionando |
 | Puede perder | Los cambios que no alcanzaron a archivarse (hasta 1 minuto) | Nada que ya haya llegado al central |
 | Recupera | Todo el servidor: datos, usuarios y configuración | Los datos. La estructura se vuelve a crear con los scripts del proyecto |
-| Tiempo medido | 10 a 15 segundos | 20 a 25 segundos |
+| Tiempo medido (desde la falla) | 10 a 31 segundos | 21 a 43 segundos |
 
 ---
 
