@@ -35,12 +35,16 @@ def pedir_clave(argumentos, posicion):
     if len(argumentos) > posicion:
         clave = argumentos[posicion]
     else:
+        # getpass no muestra nada mientras se escribe (ni asteriscos): se avisa para no confundir
+        print("Escriba la clave y presione Enter. No se verá nada mientras escribe.")
         clave = getpass.getpass("Clave nueva: ")
         if getpass.getpass("Repita la clave: ") != clave:
             sys.exit("ERROR: las claves no coinciden")
     # Regla mínima para no dejar claves vacías o demasiado cortas
+    if not clave:
+        sys.exit("ERROR: no se escribió ninguna clave")
     if len(clave) < 6:
-        sys.exit("ERROR: la clave debe tener al menos 6 caracteres")
+        sys.exit(f"ERROR: la clave tiene {len(clave)} caracteres y debe tener al menos 6")
     return clave
 
 
