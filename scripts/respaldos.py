@@ -159,7 +159,10 @@ def respaldo_fisico(nodo):
 def forzar_archivo_wal(nodo, segundos=60):
     """Cierra el segmento de WAL actual (pg_switch_wal) y espera a que quede archivado.
     Así el WAL con los últimos cambios ya está en /wal_archive."""
-    nombre = contar(nodo, "SELECT pg_walfile_name(pg_switch_wal())")
+    # pg_switch_wal() devuelve la posición justo DESPUÉS del segmento que se cerró.
+    # Se resta 1 para obtener el nombre de ese segmento cerrado. Sin el "- 1", si el nodo
+    # no tuvo cambios (pg_switch_wal no cierra nada) se esperaría un segmento que aún no termina.
+    nombre = contar(nodo, "SELECT pg_walfile_name(pg_switch_wal() - 1)")
     limite = time.time() + segundos
     while time.time() < limite:
         ultimo_archivado = contar(nodo, "SELECT coalesce(last_archived_wal, '') FROM pg_stat_archiver")
