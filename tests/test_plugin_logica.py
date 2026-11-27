@@ -12,6 +12,7 @@ from comun import ENV, NODOS  # noqa: E402
 
 
 def ejecutor_central():
+    """Ejecutor de SQL hacia el nodo central con los datos de config.ini."""
     c = logica.leer_config()["central"]
     return logica.ejecutor_psycopg2(c["host"], c["puerto"], c["base"], c["usuario"], c["clave"])
 

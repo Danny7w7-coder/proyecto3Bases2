@@ -41,6 +41,7 @@ def estado(nodo):
 
 
 def main():
+    """Muestra una tabla con el estado de los 6 nodos y avisa si alguno tiene problemas."""
     problema = revisar_servidores_de_esta_carpeta()
     if problema:
         print(f"AVISO: {problema}\n")

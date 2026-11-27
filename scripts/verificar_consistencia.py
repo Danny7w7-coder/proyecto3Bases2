@@ -46,6 +46,7 @@ def comparar():
 
 
 def mostrar_tabla(resultados):
+    """Imprime una fila por capa con la cantidad de filas en cada nodo y OK o DIFERENTE."""
     nodos = list(NODOS)
     encabezado = f"{'esquema.capa':<28}" + "".join(f"{n:>11}" for n in nodos) + "   estado"
     print(encabezado)
@@ -56,6 +57,7 @@ def mostrar_tabla(resultados):
 
 
 def mostrar_retrasos():
+    """Muestra cuánto falta por replicar en cada publicador y cuándo recibió el último mensaje cada suscriptor."""
     print("\nPublicadores (pg_stat_replication): bytes pendientes de confirmar por cada suscriptor")
     for nodo in NODOS:
         conexion = conectar(nodo)
@@ -86,6 +88,7 @@ def mostrar_retrasos():
 
 
 def main():
+    """Compara las 40 capas, muestra el resultado y termina con error si alguna es diferente."""
     resultados = comparar()
     if "--resumen" not in sys.argv:
         mostrar_tabla(resultados)

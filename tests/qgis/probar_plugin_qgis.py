@@ -31,6 +31,7 @@ resultados = []
 def prueba(nombre):
     """Decorador: corre la función y anota OK o FALLO."""
     def decorar(funcion):
+        """Ejecuta la función decorada y anota OK o FALLO con su detalle."""
         try:
             detalle = funcion()
             resultados.append(True)
@@ -45,38 +46,48 @@ def prueba(nombre):
 
 class BarraMensajes:
     def __init__(self):
+        """Lista donde se guardan los mensajes que muestra el plugin."""
         self.mensajes = []
 
     def pushMessage(self, titulo, texto, level=None, duration=None):
+        """Guarda el mensaje en lugar de mostrarlo (imita iface.messageBar())."""
         self.mensajes.append((titulo, texto))
 
 
 class IfaceDePrueba:
     """Imita lo poco que el plugin usa de 'iface' (la interfaz de QGIS)."""
     def __init__(self):
+        """Crea un mapa real de QGIS y una barra de mensajes de prueba."""
         self.lienzo = QgsMapCanvas()
         self.barra = BarraMensajes()
         self.acciones = []
 
     def mainWindow(self):
+        """En la prueba no hay ventana principal."""
         return None
 
     def addToolBarIcon(self, accion):
+        """Guarda el botón que agrega el plugin."""
         self.acciones.append(accion)
 
     def addPluginToMenu(self, menu, accion):
+        """El menú no se revisa en esta prueba."""
         pass
 
     def removePluginMenu(self, menu, accion):
+        """El menú no se revisa en esta prueba."""
         pass
 
     def removeToolBarIcon(self, accion):
+        """Quita el botón guardado."""
         self.acciones.remove(accion)
 
     def mapCanvas(self):
+        """Devuelve el mapa de prueba."""
         return self.lienzo
 
     def messageBar(self):
+        """Devuelve la barra de mensajes de prueba."""
         return self.barra
 
 
@@ -86,12 +97,14 @@ estado = {}
 
 
 def capa(nombre):
+    """Devuelve la capa del proyecto que tiene ese nombre."""
     return QgsProject.instance().mapLayersByName(nombre)[0]
 
 
 # ---------------------------------------------------------------------
 @prueba("El plugin se carga en QGIS y agrega su botón (initGui)")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     plugin.initGui()
     assert len(iface.acciones) == 1
     return iface.acciones[0].text()
@@ -99,6 +112,7 @@ def _():
 
 @prueba("Ventana de login: clave mala muestra el error y no cierra")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     dialogo = DialogoLogin(plugin.ingresar)
     dialogo.usuario.setText("sancarlos1")
     dialogo.clave.setText("mala")
@@ -110,6 +124,7 @@ def _():
 
 @prueba("Ventana de login: credenciales correctas cierran la ventana y cargan las 8 capas")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     dialogo = DialogoLogin(plugin.ingresar)
     dialogo.usuario.setText("sancarlos1")
     dialogo.clave.setText("tec2026")
@@ -124,6 +139,7 @@ def _():
 
 @prueba("Las capas tienen SRID 5367, clave id, datos de los 5 campus y su estilo")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     resumen = []
     for vista, nombre, _ in logica.CAPAS:
         c = capa(nombre)
@@ -139,6 +155,7 @@ def _():
 
 @prueba("El mapa queda centrado en el campus del usuario")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     centro = iface.mapCanvas().extent().center()
     rect = iface.mapCanvas().extent()
     pedido = QgsFeatureRequest().setFilterExpression('"campus_id" = 3')
@@ -149,6 +166,7 @@ def _():
 
 @prueba("Editar un objeto PROPIO desde QGIS se guarda")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     c = capa("Edificios")
     propio = next(c.getFeatures(QgsFeatureRequest().setFilterExpression('"campus_id" = 3')))
     estado["propio"] = (propio.id(), propio["pisos"])
@@ -165,6 +183,7 @@ def _():
 
 @prueba("Editar un objeto de OTRO campus se rechaza y el plugin muestra el mensaje")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     c = capa("Edificios")
     ajeno = next(c.getFeatures(QgsFeatureRequest().setFilterExpression('"campus_id" = 1')))
     antes = len(iface.barra.mensajes)
@@ -179,6 +198,7 @@ def _():
 
 @prueba("Borrar un objeto de OTRO campus se rechaza")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     c = capa("Iluminación")
     ajeno = next(c.getFeatures(QgsFeatureRequest().setFilterExpression('"campus_id" = 2')))
     c.startEditing()
@@ -190,6 +210,7 @@ def _():
 
 @prueba("Crear y borrar un objeto nuevo desde QGIS (queda en San Carlos con id de su rango)")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     c = capa("Puntos de interés")
     c.startEditing()
     nuevo = QgsFeature(c.fields())
@@ -209,6 +230,7 @@ def _():
 
 @prueba("Respaldo sin psycopg2: el ejecutor de QGIS también autentica")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     from sigtec.conexion_qgis import ejecutor_qgis
     config = logica.leer_config()["central"]
     ejecutar = ejecutor_qgis(config["host"], config["puerto"], config["base"], config["usuario"], config["clave"])
@@ -224,6 +246,7 @@ def _():
 
 @prueba("Volver a entrar con otro usuario reemplaza las capas (no las duplica)")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     plugin.ingresar("cartago1", "tec2026")
     grupos = [g.name() for g in QgsProject.instance().layerTreeRoot().children()]
     assert grupos == ["SIG-TEC - Campus Tecnológico Central Cartago"], grupos
@@ -232,6 +255,7 @@ def _():
 
 @prueba("unload() quita el botón del plugin")
 def _():
+    """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
     plugin.unload()
     assert iface.acciones == []
 

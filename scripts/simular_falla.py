@@ -13,6 +13,7 @@ from restaurar import nombre_volumen
 
 
 def perder_nodo(nodo):
+    """Simula la pérdida de un nodo: elimina su contenedor y borra su volumen de datos."""
     volumen = nombre_volumen(nodo, "data")
     subprocess.run(["docker", "compose", "rm", "-s", "-f", nodo], cwd=RAIZ, check=True, capture_output=True)
     print(f"  [{nodo}] contenedor detenido y eliminado")

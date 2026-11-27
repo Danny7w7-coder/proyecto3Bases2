@@ -55,6 +55,7 @@ def linea(cx, cy, puntos):
 
 
 def punto(cx, cy, x, y):
+    """Punto en texto WKT, desplazado x, y metros desde el centro del campus."""
     return f"POINT({cx + x} {cy + y})"
 
 
@@ -71,6 +72,7 @@ def insertar(cursor, esquema, tabla, columnas, valores, wkt):
 
 
 def cargar_campus(campus_id, esquema, forzar):
+    """Carga los datos de ejemplo de un campus en su propio esquema, en una sola transacción. Si el campus ya tiene datos no hace nada, salvo que forzar sea True."""
     conexion = conectar(esquema, autocommit=False)
     cursor = conexion.cursor()
 
@@ -194,6 +196,7 @@ def cargar_campus(campus_id, esquema, forzar):
 
 
 def main():
+    """Carga los datos de ejemplo en los 5 campus."""
     forzar = "--forzar" in sys.argv
     for campus_id, esquema in CAMPUS:
         cargar_campus(campus_id, esquema, forzar)

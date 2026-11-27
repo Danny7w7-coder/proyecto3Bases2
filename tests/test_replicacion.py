@@ -16,14 +16,17 @@ OTROS = [n for n in NODOS if n != ORIGEN]   # central + los otros 4 campus
 
 
 def etiqueta():
+    """Nombre único para las filas de prueba (PRUEBA-xxxxxxxx)."""
     return f"PRUEBA-{uuid.uuid4().hex[:8]}"
 
 
 def punto_sql(x=495000, y=1145000):
+    """Geometría de un punto en el SRID institucional, para las pruebas."""
     return f"ST_SetSRID(ST_MakePoint({x}, {y}), {SRID})"
 
 
 def cuantos(nodo, tabla, columna, valor):
+    """Cuenta las filas del esquema de San Carlos que tienen ese valor en la columna."""
     return contar(nodo, f"SELECT count(*) FROM {ORIGEN}.{tabla} WHERE {columna} = %s", (valor,))
 
 
@@ -33,6 +36,7 @@ def en_todos(tabla, columna, valor, esperado):
 
 
 def ejecutar(nodo, sql, parametros=None):
+    """Ejecuta una sentencia SQL en el nodo indicado."""
     conexion = conectar(nodo)
     conexion.cursor().execute(sql, parametros)
     conexion.close()
@@ -85,6 +89,7 @@ def prueba_transaccion_atomica():
     # Mientras llega, en el central solo se puede ver "nada" (0+0) o "todo" (1+4), nunca a medias
     vistos = set()
     def completo():
+        """Lee en el central (edificio x 10 + luminarias) y lo guarda, para ver si alguna vez hubo un estado a medias."""
         valor = contar("central", f"""
             SELECT (SELECT count(*) FROM {ORIGEN}.edificios WHERE nombre = %s) * 10
                  + (SELECT count(*) FROM {ORIGEN}.iluminacion WHERE codigo = %s)""", (nombre, nombre))

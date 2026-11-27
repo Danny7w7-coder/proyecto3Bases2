@@ -14,6 +14,7 @@ def ejecutor_qgis(host, puerto, base, usuario, clave):
     metadatos = QgsProviderRegistry.instance().providerMetadata("postgres")
 
     def ejecutar(sql, parametros=()):
+        """Ejecuta una consulta con la conexión de QGIS y devuelve las filas como diccionarios."""
         try:
             conexion = metadatos.createConnection(uri.uri(False), {})
             resultado = conexion.execSql(armar_sql(sql, parametros))

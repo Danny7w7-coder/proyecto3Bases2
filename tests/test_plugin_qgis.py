@@ -15,6 +15,7 @@ SCRIPT = os.path.join(RAIZ, "tests", "qgis", "probar_plugin_qgis.py")
 
 
 def python_de_qgis():
+    """Ruta del Python de QGIS (variable QGIS_PYTHON o la instalación de Windows), o None si no hay."""
     if os.environ.get("QGIS_PYTHON"):
         return os.environ["QGIS_PYTHON"]
     candidatos = sorted(glob.glob(r"C:\Program Files\QGIS *\bin\python-qgis-ltr.bat")

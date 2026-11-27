@@ -18,6 +18,7 @@ AJENO = "cartago"            # otro campus
 
 
 def conectar_rol(autocommit=True):
+    """Conexión al nodo de San Carlos con el rol del campus, igual que entra QGIS."""
     return conectar(NODO, autocommit, usuario=ROL, clave=ENV["EDITOR_PASSWORD"])
 
 
@@ -36,10 +37,12 @@ def ejecutar_rol(sql, parametros=None):
 
 
 def etiqueta():
+    """Nombre único para las filas de prueba (PRUEBA-xxxxxxxx)."""
     return f"PRUEBA-{uuid.uuid4().hex[:8]}"
 
 
 def borrar(nombre):
+    """Borra los puntos de interés de prueba que tienen ese nombre."""
     conexion = conectar(NODO)
     conexion.cursor().execute(f"DELETE FROM {NODO}.puntos_interes WHERE nombre = %s", (nombre,))
     conexion.close()
@@ -109,6 +112,7 @@ def prueba_insert_multipoligono():
 
 
 def conectar_y_leer(sql, parametros):
+    """Ejecuta una consulta como superusuario y devuelve la primera fila."""
     conexion = conectar(NODO)
     cursor = conexion.cursor()
     cursor.execute(sql, parametros)

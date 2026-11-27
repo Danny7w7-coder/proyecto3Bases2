@@ -18,6 +18,7 @@ OBLIGATORIOS = ["__init__.py", "metadata.txt", "plugin.py", "icon.png", "config.
 
 
 def main():
+    """Revisa los archivos del plugin, comprueba que compilen y arma dist/sigtec.zip."""
     # 1. Revisar que estén los archivos que QGIS necesita
     for nombre in OBLIGATORIOS:
         if not os.path.exists(os.path.join(CARPETA_PLUGIN, nombre)):

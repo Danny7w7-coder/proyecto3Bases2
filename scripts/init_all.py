@@ -101,6 +101,7 @@ def ejecutar_sql_nodo(nodo):
 
 
 def main():
+    """Levanta Docker, ejecuta los SQL en cada nodo, carga los datos, arma la replicación y publica los estilos."""
     reset = "--reset" in sys.argv
     sin_datos = "--sin-datos" in sys.argv
 

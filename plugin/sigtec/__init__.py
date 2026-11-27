@@ -2,5 +2,6 @@
 
 
 def classFactory(iface):
+    """QGIS llama a esta función al cargar el plugin. Crea y devuelve la clase principal."""
     from .plugin import SigTecPlugin
     return SigTecPlugin(iface)

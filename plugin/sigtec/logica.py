@@ -59,6 +59,7 @@ def leer_config(ruta=None):
 # Ejecutor con psycopg2
 # ---------------------------------------------------------------------
 def psycopg2_disponible():
+    """Devuelve True si el Python de QGIS tiene psycopg2 instalado."""
     try:
         import psycopg2  # noqa: F401
         return True
@@ -71,6 +72,7 @@ def ejecutor_psycopg2(host, puerto, base, usuario, clave):
     import psycopg2
 
     def ejecutar(sql, parametros=()):
+        """Abre una conexión, ejecuta la consulta y devuelve las filas como diccionarios. Los errores se convierten en ErrorSigTec con un mensaje en español."""
         try:
             conexion = psycopg2.connect(host=host, port=puerto, dbname=base, user=usuario,
                                         password=clave, connect_timeout=5)

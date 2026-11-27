@@ -45,6 +45,7 @@ def sincronizar_suscripcion(campus, valor):
 
 
 def activar(campus, rapido=True):
+    """Activa el modo síncrono en un campus: su COMMIT espera la confirmación del central."""
     if rapido:
         sincronizar_suscripcion(campus, "on")
     conexion = conectar(campus)
@@ -59,6 +60,7 @@ def activar(campus, rapido=True):
 
 
 def desactivar(campus):
+    """Vuelve al modo asíncrono, que es el valor por defecto."""
     conexion = conectar(campus)
     cursor = conexion.cursor()
     cursor.execute("ALTER SYSTEM RESET synchronous_standby_names")
@@ -71,6 +73,7 @@ def desactivar(campus):
 
 
 def estado():
+    """Muestra en qué modo está la replicación de cada campus."""
     for _, campus in CAMPUS:
         conexion = conectar(campus)
         cursor = conexion.cursor()
@@ -87,6 +90,7 @@ def estado():
 # Demo
 # ---------------------------------------------------------------------
 def insertar_uno(conexion, etiqueta):
+    """Inserta un punto de interés de prueba. Se usa para medir cuánto tarda un COMMIT."""
     conexion.cursor().execute(
         f"INSERT INTO {CAMPUS_DEMO}.puntos_interes (nombre, tipo, geom) "
         f"VALUES (%s, 'otro', ST_SetSRID(ST_MakePoint(495000, 1145000), {SRID}))", (etiqueta,))
@@ -104,6 +108,7 @@ def medir_commits(cantidad=100):
 
 
 def docker(accion, contenedor="sigtec_central"):
+    """Ejecuta 'docker <accion> <contenedor>', por ejemplo para apagar o encender el central."""
     subprocess.run(["docker", accion, contenedor], check=True, capture_output=True)
 
 
@@ -114,6 +119,7 @@ def commit_con_central_caido(sincrono):
     resultado = {}
 
     def trabajo():
+        """Hace un INSERT en otro hilo y mide cuánto tarda su COMMIT."""
         conexion = conectar(CAMPUS_DEMO)
         inicio = time.perf_counter()
         insertar_uno(conexion, "DEMO-SYNC")
@@ -141,6 +147,7 @@ def commit_con_central_caido(sincrono):
 
 
 def demo():
+    """Compara el modo asíncrono con el síncrono, con el central encendido y apagado, y muestra un resumen."""
     print(f"Demo en el campus {CAMPUS_DEMO}\n")
     desactivar(CAMPUS_DEMO)
     print("1. ASÍNCRONO, 100 COMMIT con el central arriba")

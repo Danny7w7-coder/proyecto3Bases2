@@ -14,6 +14,7 @@ from .logica import ErrorSigTec
 
 class DialogoLogin(QDialog):
     def __init__(self, al_ingresar, padre=None):
+        """Arma la ventana: título, usuario, contraseña, mensaje de error y botones."""
         super().__init__(padre)
         self.al_ingresar = al_ingresar
         self.setWindowTitle("SIG-TEC - Ingreso")

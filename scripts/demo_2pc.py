@@ -43,12 +43,14 @@ def nuevo_xid(conexion, gtrid, nodo):
 
 
 def trabajo_central(conexion, usuario):
+    """Parte del nodo central en la transacción distribuida: registra el usuario con su clave cifrada."""
     conexion.cursor().execute(
         "INSERT INTO public.usuarios (usuario, clave_hash, campus_id) "
         "VALUES (%s, crypt('clave123', gen_salt('bf', 10)), %s)", (usuario, CAMPUS_ID))
 
 
 def trabajo_campus(conexion, usuario, tipo="otro"):
+    """Parte del campus en la transacción distribuida: crea el punto de interés 'Oficina de <usuario>'."""
     conexion.cursor().execute(
         f"INSERT INTO {CAMPUS_DEMO}.puntos_interes (nombre, tipo, descripcion, geom) "
         f"VALUES (%s, %s, 'Creado con 2PC', ST_SetSRID(ST_MakePoint(495000, 1145000), {SRID}))",
@@ -56,6 +58,7 @@ def trabajo_campus(conexion, usuario, tipo="otro"):
 
 
 def existe_en_ambos(usuario):
+    """Devuelve (filas en el central, filas en el campus) del usuario, para comprobar el resultado."""
     en_central = contar("central", "SELECT count(*) FROM public.usuarios WHERE usuario = %s", (usuario,))
     en_campus = contar(CAMPUS_DEMO, f"SELECT count(*) FROM {CAMPUS_DEMO}.puntos_interes WHERE nombre = %s",
                        (f"Oficina de {usuario}",))
@@ -93,6 +96,7 @@ def registrar_usuario_2pc(usuario, tipo="otro"):
 
 
 def preparadas(nodo):
+    """Lista las transacciones preparadas que quedaron pendientes en un nodo (pg_prepared_xacts)."""
     conexion = conectar(nodo)
     cursor = conexion.cursor()
     cursor.execute("SELECT gid FROM pg_prepared_xacts ORDER BY gid")
@@ -133,6 +137,7 @@ def escenario_c(usuario):
 
 
 def limpiar(usuarios):
+    """Borra los usuarios y puntos de interés que crea la demostración."""
     for usuario in usuarios:
         conexion = conectar("central")
         conexion.cursor().execute("DELETE FROM public.usuarios WHERE usuario = %s", (usuario,))
@@ -144,6 +149,7 @@ def limpiar(usuarios):
 
 
 def main():
+    """Ejecuta los tres casos del commit en dos fases: éxito, falla y caída del coordinador."""
     sufijo = uuid.uuid4().hex[:4]
     usuario_a, usuario_b, usuario_c = f"demo_a_{sufijo}", f"demo_b_{sufijo}", f"demo_c_{sufijo}"
 

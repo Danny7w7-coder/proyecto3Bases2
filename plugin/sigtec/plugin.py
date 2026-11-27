@@ -32,12 +32,14 @@ def crear_ejecutor(host, puerto, base, usuario, clave):
 
 class SigTecPlugin:
     def __init__(self, iface):
+        """Guarda la interfaz de QGIS (iface). El botón se crea después, en initGui()."""
         self.iface = iface
         self.accion = None
         self.sesion = None  # datos del usuario que entró (resultado de autenticar)
 
     # --- QGIS llama a estos dos métodos al activar / desactivar el plugin ---
     def initGui(self):
+        """QGIS lo llama al activar el plugin: crea el botón TEC y el menú SIG-TEC."""
         icono = QIcon(os.path.join(os.path.dirname(__file__), "icon.png"))
         self.accion = QAction(icono, "SIG-TEC: Ingresar", self.iface.mainWindow())
         self.accion.triggered.connect(self.abrir_login)
@@ -45,11 +47,13 @@ class SigTecPlugin:
         self.iface.addPluginToMenu(TITULO, self.accion)
 
     def unload(self):
+        """QGIS lo llama al desactivar el plugin: quita el botón y el menú."""
         self.iface.removePluginMenu(TITULO, self.accion)
         self.iface.removeToolBarIcon(self.accion)
 
     # --- Login ---
     def abrir_login(self):
+        """Muestra la ventana de ingreso. Se llama al presionar el botón TEC."""
         dialogo = DialogoLogin(self.ingresar, self.iface.mainWindow())
         dialogo.exec()
 
@@ -90,6 +94,7 @@ class SigTecPlugin:
             QMessageBox.warning(self.iface.mainWindow(), TITULO, "\n".join(problemas))
 
     def acercar_al_campus(self, rect):
+        """Acerca el mapa al rectángulo del campus y lo vuelve a dibujar."""
         self.iface.mapCanvas().setExtent(rect)
         self.iface.mapCanvas().refresh()
 

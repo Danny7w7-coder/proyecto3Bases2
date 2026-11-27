@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(RAIZ, "tests"))
 
 
 def main():
+    """Revisa que los servidores sean de esta carpeta, ejecuta cada tests/test_*.py y muestra OK o FALLO por prueba."""
     problema = revisar_servidores_de_esta_carpeta()
     if problema:
         print(f"\nNo se pueden correr las pruebas.\n  {problema}\n")

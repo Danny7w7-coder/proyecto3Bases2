@@ -35,22 +35,26 @@ from simular_falla import perder_nodo
 
 
 def ejecutar(nodo, sql, parametros=None):
+    """Ejecuta una sentencia SQL en el nodo indicado."""
     conexion = conectar(nodo)
     conexion.cursor().execute(sql, parametros)
     conexion.close()
 
 
 def consistente():
+    """Devuelve las capas que NO son iguales en los 6 nodos. Vacía si todo coincide."""
     diferentes = [f"{e}.{c}" for e, c, _, ok in verificar_consistencia.comparar() if not ok]
     return diferentes
 
 
 def titulo(texto):
+    """Imprime el título de un paso del escenario."""
     print(f"\n=== {texto} ===")
 
 
 # ---------------------------------------------------------------------
 def escenario_a():
+    """Escenario A: borrado por error en San Carlos y recuperación a un instante (PITR). Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
     nodo = "san_carlos"
     tiempos = {}
     contar_puntos = f"SELECT count(*) FROM {nodo}.puntos_interes"
@@ -98,6 +102,7 @@ def escenario_a():
 
 # ---------------------------------------------------------------------
 def escenario_b(modo):
+    """Escenario B: se pierde el nodo de Limón. Se recupera con el respaldo físico (modo 'fisico') o desde la copia del central (modo 'desde_central'). Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
     nodo = "limon"
     tiempos = {}
     if modo == "fisico":

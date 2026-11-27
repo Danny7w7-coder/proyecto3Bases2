@@ -36,6 +36,7 @@ IMAGEN = "sigtec-nodo:latest"
 
 
 def compose(*argumentos):
+    """Ejecuta 'docker compose ...' en la carpeta del proyecto. Falla si el comando falla."""
     subprocess.run(["docker", "compose", *argumentos], cwd=RAIZ, check=True, capture_output=True)
 
 
@@ -62,12 +63,14 @@ def auxiliar(volumen, punto_montaje, script, entrada=None):
 
 
 def esta_corriendo(nodo):
+    """Devuelve True si el contenedor del nodo está encendido."""
     resultado = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", f"sigtec_{nodo}"],
                                capture_output=True, text=True)
     return resultado.stdout.strip() == "true"
 
 
 def mostrar_log_recuperacion(nodo):
+    """Muestra las líneas importantes del registro de PostgreSQL durante la recuperación."""
     resultado = subprocess.run(["docker", "logs", "--since", "5m", f"sigtec_{nodo}"],
                                capture_output=True, text=True, errors="replace")
     claves = ("recovery stopping", "redo done", "archive recovery complete", "selected new timeline",
@@ -120,6 +123,7 @@ def restaurar_fisico(nodo, archivo=None, hasta=None):
 
 
 def pitr(nodo, hasta):
+    """Recupera un campus hasta una hora exacta y vuelve a enganchar su replicación. Devuelve los tiempos de cada parte."""
     t_restaurar = restaurar_fisico(nodo, hasta=hasta)
     t0 = time.time()
     replicacion.resincronizar(nodo)
@@ -127,6 +131,7 @@ def pitr(nodo, hasta):
 
 
 def fisico(nodo):
+    """Recupera un campus con su último respaldo físico y todo el WAL, y vuelve a enganchar su replicación. Devuelve los tiempos de cada parte."""
     t_restaurar = restaurar_fisico(nodo)
     t0 = time.time()
     replicacion.resincronizar(nodo)

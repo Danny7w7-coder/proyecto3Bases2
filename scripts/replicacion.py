@@ -43,6 +43,7 @@ def texto_conexion(host):
 
 
 def existe(nodo, catalogo, columna, nombre):
+    """Devuelve True si en el catálogo del nodo ya existe una publicación o suscripción con ese nombre."""
     conexion = conectar(nodo)
     cursor = conexion.cursor()
     cursor.execute(f"SELECT 1 FROM {catalogo} WHERE {columna} = %s", (nombre,))
@@ -85,6 +86,7 @@ def asegurar_tabla(nodo, publicacion, tabla, nodo_suscriptor, suscripcion):
 
 
 def crear_suscripcion(nodo, nombre, host_publicador, publicacion):
+    """Crea en el nodo una suscripción a la publicación de otro nodo, con copia inicial de los datos."""
     if existe(nodo, "pg_subscription", "subname", nombre):
         print(f"  [{nodo}] suscripción {nombre} ya existe")
         return
@@ -115,6 +117,7 @@ def esperar_copia_inicial(nodo, segundos=120):
 
 
 def configurar():
+    """Arma la replicación completa: nivel 1 (campus -> central) y nivel 2 (central -> campus)."""
     print(" Nivel 1: campus -> central")
     for _, campus in CAMPUS:
         crear_publicacion(campus, f"pub_nivel1_{campus}", [campus])
@@ -273,6 +276,7 @@ def quitar():
 
 
 def estado():
+    """Muestra las publicaciones y suscripciones de cada nodo."""
     for nodo in NODOS:
         conexion = conectar(nodo)
         cursor = conexion.cursor()

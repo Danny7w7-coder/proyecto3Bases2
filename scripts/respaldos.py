@@ -30,14 +30,17 @@ USUARIO = ENV["DB_USER"]
 
 
 def contenedor(nodo):
+    """Nombre del contenedor de Docker de un nodo (sigtec_<nodo>)."""
     return f"sigtec_{nodo}"
 
 
 def marca_de_tiempo():
+    """Fecha y hora actual, para el nombre de los archivos de respaldo."""
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def carpeta(nodo, tipo):
+    """Carpeta backups/<nodo>/<tipo>. Se crea si no existe."""
     ruta = os.path.join(CARPETA, nodo, tipo)
     os.makedirs(ruta, exist_ok=True)
     return ruta
@@ -55,6 +58,7 @@ def docker_exec_a_archivo(nodo, comando, archivo):
 
 
 def tamano(bytes_):
+    """Tamaño en KB o MB, para mostrarlo en pantalla."""
     return f"{bytes_ / 1024:.0f} KB" if bytes_ < 1024 * 1024 else f"{bytes_ / 1024 / 1024:.1f} MB"
 
 
@@ -81,6 +85,7 @@ def respaldo_logico(nodo):
 
 
 def ultimo(nodo, tipo, patron):
+    """Ruta del respaldo más reciente de un nodo que coincide con el patrón."""
     archivos = sorted(glob.glob(os.path.join(CARPETA, nodo, tipo, patron)))
     if not archivos:
         raise FileNotFoundError(f"no hay respaldos {tipo} de {nodo} ({patron})")
@@ -163,6 +168,7 @@ def forzar_archivo_wal(nodo, segundos=60):
 
 
 def listar():
+    """Muestra los respaldos guardados y el estado del archivado de WAL de cada nodo."""
     for nodo in NODOS:
         for tipo in ["logico", "fisico"]:
             for ruta in sorted(glob.glob(os.path.join(CARPETA, nodo, tipo, "*"))):
@@ -174,6 +180,7 @@ def listar():
 
 
 def conectar_y_leer(nodo):
+    """Lee de pg_stat_archiver cuántos WAL se archivaron, cuántos fallaron y cuál fue el último."""
     conexion = conectar(nodo)
     cursor = conexion.cursor()
     cursor.execute("SELECT archived_count, failed_count, last_archived_wal FROM pg_stat_archiver")

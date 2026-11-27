@@ -35,24 +35,28 @@ def simbolo(nombre, tipo, clase, valores):
 
 
 def relleno(color, borde, nombre="0"):
+    """Símbolo de polígono con color de relleno y de borde."""
     return simbolo(nombre, "fill", "SimpleFill", {
         "color": f"{color},255", "outline_color": f"{borde},255", "outline_width": "0.4",
         "outline_width_unit": "MM", "style": "solid", "outline_style": "solid", "joinstyle": "bevel"})
 
 
 def linea(color, ancho, estilo="solid", nombre="0"):
+    """Símbolo de línea con color, grosor y tipo de trazo."""
     return simbolo(nombre, "line", "SimpleLine", {
         "line_color": f"{color},255", "line_width": str(ancho), "line_width_unit": "MM",
         "line_style": estilo, "capstyle": "round", "joinstyle": "round"})
 
 
 def marcador(color, forma="circle", tamano=3, nombre="0"):
+    """Símbolo de punto con forma, color y tamaño."""
     return simbolo(nombre, "marker", "SimpleMarker", {
         "name": forma, "color": f"{color},255", "outline_color": "50,50,50,255",
         "outline_width": "0.2", "outline_width_unit": "MM", "size": str(tamano), "size_unit": "MM"})
 
 
 def renderer_simple(sim):
+    """Renderer de QGIS con un solo símbolo para toda la capa."""
     return (f'<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0">'
             f'<symbols>{sim}</symbols></renderer-v2>')
 
@@ -77,6 +81,7 @@ def etiquetas(campo):
 
 
 def qml(renderer, labeling=""):
+    """Documento QML completo (raíz <qgis>) con el renderer y, si hay, las etiquetas."""
     con_etiquetas = "1" if labeling else "0"
     return (f'<qgis version="3.34.0" styleCategories="Symbology|Labeling" labelsEnabled="{con_etiquetas}">'
             f'{renderer}{labeling}</qgis>')
@@ -116,6 +121,7 @@ ESTILOS = {
 
 
 def publicar(capa, color=None, descripcion="Estilo institucional SIG-TEC"):
+    """Crea una nueva versión del estilo de una capa en el central y la deja vigente. Devuelve el número de versión."""
     tipo, color_base, armar = ESTILOS[capa]
     texto_qml = armar(color or color_base)
     conexion = conectar("central")
@@ -128,6 +134,7 @@ def publicar(capa, color=None, descripcion="Estilo institucional SIG-TEC"):
 
 
 def publicar_faltantes():
+    """Publica la versión 1 de las capas que todavía no tienen estilo."""
     conexion = conectar("central")
     cursor = conexion.cursor()
     cursor.execute("SELECT DISTINCT f_table_name FROM public.layer_styles WHERE f_table_schema = 'sig'")
@@ -141,6 +148,7 @@ def publicar_faltantes():
 
 
 def listar():
+    """Muestra todas las versiones de los estilos guardadas en el central."""
     conexion = conectar("central")
     cursor = conexion.cursor()
     cursor.execute("""SELECT f_table_name, version, vigente, update_time::timestamp(0), description
@@ -151,6 +159,7 @@ def listar():
 
 
 def activar(capa, version):
+    """Vuelve a dejar vigente una versión anterior del estilo de una capa."""
     conexion = conectar("central")
     conexion.cursor().execute("SELECT public.activar_version_estilo(%s, %s)", (capa, version))
     conexion.close()

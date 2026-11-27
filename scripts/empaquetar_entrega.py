@@ -23,6 +23,7 @@ SOLO_LOCALES = {"docs/DECISIONES.md", "docs/GUION_VIDEO.md", "docs/CHECKLIST_ENU
 
 
 def main():
+    """Genera el plugin y arma ../sig-tec.zip con todo lo que se entrega."""
     # El plugin empaquetado tiene que estar al día
     subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "empaquetar_plugin.py")], check=True,
                    capture_output=True)

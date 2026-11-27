@@ -13,6 +13,7 @@ from comun import NODOS, contar  # noqa: E402
 
 
 def revisar(resultado, diferentes):
+    """Falla si algún valor no es el esperado o si hay capas diferentes entre nodos."""
     malos = {k: v for k, v in resultado.items() if v[0] != v[1]}
     assert not malos, f"valores distintos a lo esperado: {malos}"
     assert not diferentes, f"capas diferentes entre nodos: {diferentes}"
