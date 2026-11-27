@@ -96,6 +96,7 @@ def verificar_logico(nodo):
     """Restaura el último respaldo lógico completo en una base nueva del mismo nodo
     y compara la cantidad de filas de cada capa con la base original."""
     archivo = ultimo(nodo, "logico", f"{nodo}_completo_*.dump")
+    # Base temporal y vacía donde se restaura la copia (la base real no se toca)
     prueba = "verificacion_respaldo"
     conexion = conectar(nodo)
     conexion.cursor().execute(f"DROP DATABASE IF EXISTS {prueba}")
@@ -129,6 +130,7 @@ def verificar_logico(nodo):
     original.close()
     copia.close()
 
+    # Se borra la base temporal: solo servía para comprobar el respaldo
     conexion = conectar(nodo)
     conexion.cursor().execute(f"DROP DATABASE {prueba}")
     conexion.close()

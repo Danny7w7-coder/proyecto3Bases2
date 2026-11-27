@@ -126,6 +126,8 @@ def commit_con_central_caido(sincrono):
         resultado["segundos"] = round(time.perf_counter() - inicio, 2)
         conexion.close()
 
+    # El COMMIT va en otro hilo porque en modo síncrono puede quedarse esperando.
+    # Se le dan 6 segundos para terminar
     hilo = threading.Thread(target=trabajo)
     hilo.start()
     hilo.join(timeout=6)
@@ -140,8 +142,10 @@ def commit_con_central_caido(sincrono):
         hilo.join()
         print(f"  - el COMMIT terminó cuando volvió el central: tardó {resultado['segundos']} s en total")
     else:
+        # En modo asíncrono el campus no espera al central
         print(f"  - el COMMIT terminó en {resultado['segundos']} s aunque el central está caído")
         docker("start")
+    # El central queda encendido otra vez para lo que sigue
     esperar_nodo("central")
     return resultado["segundos"]
 
@@ -149,21 +153,25 @@ def commit_con_central_caido(sincrono):
 def demo():
     """Compara el modo asíncrono con el síncrono, con el central encendido y apagado, y muestra un resumen."""
     print(f"Demo en el campus {CAMPUS_DEMO}\n")
+    # Caso 1: modo asíncrono (el normal del proyecto)
     desactivar(CAMPUS_DEMO)
     print("1. ASÍNCRONO, 100 COMMIT con el central arriba")
     ms_async = medir_commits()
     print(f"  - promedio por COMMIT: {ms_async} ms\n")
 
+    # Caso 2a: síncrono con la suscripción por defecto (el central confirma lento)
     activar(CAMPUS_DEMO, rapido=False)
     print("2a. SÍNCRONO (suscripción por defecto), 100 COMMIT con el central arriba")
     ms_sync_lento = medir_commits()
     print(f"  - promedio por COMMIT: {ms_sync_lento} ms (el central confirma cada ~200 ms)\n")
 
+    # Caso 2b: síncrono con la suscripción ajustada (el central confirma de inmediato)
     activar(CAMPUS_DEMO)
     print("2b. SÍNCRONO (suscripción con synchronous_commit=on), 100 COMMIT con el central arriba")
     ms_sync = medir_commits()
     print(f"  - promedio por COMMIT: {ms_sync} ms\n")
 
+    # Casos 3 y 4: qué pasa con un COMMIT cuando el central no está
     print("3. SÍNCRONO con el central CAÍDO")
     s_sync = commit_con_central_caido(sincrono=True)
     print()
@@ -179,6 +187,7 @@ def demo():
     conexion.cursor().execute(f"DELETE FROM {CAMPUS_DEMO}.puntos_interes WHERE nombre = 'DEMO-SYNC'")
     conexion.close()
 
+    # Tabla final para comparar los dos modos
     print("Resumen")
     print(f"  {'':<34}{'asíncrono':>12}{'síncrono':>12}")
     print(f"  {'COMMIT promedio (central arriba)':<34}{str(ms_async) + ' ms':>12}{str(ms_sync) + ' ms':>12}")

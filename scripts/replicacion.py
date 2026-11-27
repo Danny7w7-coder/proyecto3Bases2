@@ -119,19 +119,25 @@ def esperar_copia_inicial(nodo, segundos=120):
 def configurar():
     """Arma la replicación completa: nivel 1 (campus -> central) y nivel 2 (central -> campus)."""
     print(" Nivel 1: campus -> central")
+    # Cada campus publica solo su propio esquema
     for _, campus in CAMPUS:
         crear_publicacion(campus, f"pub_nivel1_{campus}", [campus])
+    # El central se suscribe a los 5 campus y así junta todos los datos
     for _, campus in CAMPUS:
         crear_suscripcion("central", f"sub_nivel1_{campus}", campus, f"pub_nivel1_{campus}")
     esperar_copia_inicial("central")
 
     print(" Nivel 2: central -> campus (los otros 4 esquemas + los estilos)")
+    # Una publicación por campus con los esquemas de los OTROS 4.
+    # Así a un campus nunca le vuelven sus propios datos (no hay ciclos)
     for _, campus in CAMPUS:
         otros = [otro for _, otro in CAMPUS if otro != campus]
         crear_publicacion("central", f"pub_nivel2_{campus}", otros, ESTILOS)
+    # Cada campus se suscribe a su publicación en el central
     for _, campus in CAMPUS:
         crear_suscripcion(campus, f"sub_nivel2_{campus}", "central", f"pub_nivel2_{campus}")
         asegurar_tabla("central", f"pub_nivel2_{campus}", ESTILOS, campus, f"sub_nivel2_{campus}")
+    # Se espera a que cada campus termine de copiar los datos de los demás
     for _, campus in CAMPUS:
         esperar_copia_inicial(campus)
 
@@ -158,18 +164,22 @@ def reactivar(segundos=60):
     suscripción falla y PostgreSQL puede tardar hasta 3 minutos en reintentar.
     DISABLE + ENABLE hace que lo vuelva a lanzar de inmediato.
     """
+    # Se repite hasta que todas corran o se acabe el tiempo
     limite = time.time() + segundos
     while time.time() < limite:
+        # Suscripciones de los 6 nodos que no tienen proceso
         caidas = [(nodo, nombre) for nodo in NODOS for nombre in suscripciones_sin_proceso(nodo)]
         if not caidas:
             print("  las 10 suscripciones tienen su proceso corriendo")
             return True
+        # Apagar y encender cada una obliga a PostgreSQL a lanzar el proceso ya
         for nodo, nombre in caidas:
             conexion = conectar(nodo)
             conexion.cursor().execute(f"ALTER SUBSCRIPTION {nombre} DISABLE")
             conexion.cursor().execute(f"ALTER SUBSCRIPTION {nombre} ENABLE")
             conexion.close()
             print(f"  [{nodo}] {nombre} sin proceso -> DISABLE + ENABLE")
+        # Se dan unos segundos para que arranquen antes de revisar otra vez
         time.sleep(3)
     print("  AVISO: hay suscripciones que no arrancan (revise que todos los nodos estén arriba)")
     return False

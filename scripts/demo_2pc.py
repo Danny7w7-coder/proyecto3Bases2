@@ -67,9 +67,11 @@ def existe_en_ambos(usuario):
 
 def registrar_usuario_2pc(usuario, tipo="otro"):
     """Coordinador 2PC completo. Devuelve True si confirmó, False si deshizo."""
+    # Identificador global de la transacción, el mismo en los dos nodos
     gtrid = f"sigtec-{uuid.uuid4().hex[:8]}"
     central = conectar("central", autocommit=False)
     campus = conectar(CAMPUS_DEMO, autocommit=False)
+    # Se abre una transacción distribuida en cada nodo
     central.tpc_begin(nuevo_xid(central, gtrid, "central"))
     campus.tpc_begin(nuevo_xid(campus, gtrid, CAMPUS_DEMO))
     try:
@@ -79,6 +81,7 @@ def registrar_usuario_2pc(usuario, tipo="otro"):
         central.tpc_prepare()
         campus.tpc_prepare()
     except psycopg2.Error as error:
+        # Si un nodo falla antes de preparar, ninguno guarda nada
         print(f"    falla en la fase 1: {error.diag.message_primary}")
         print("    -> ROLLBACK en los dos nodos")
         central.tpc_rollback()
@@ -107,6 +110,7 @@ def preparadas(nodo):
 
 def escenario_c(usuario):
     """El coordinador prepara en los dos nodos y 'se cae' antes de decidir."""
+    # Igual que la fase 1 de registrar_usuario_2pc: trabajo y PREPARE en los dos nodos
     gtrid = f"sigtec-{uuid.uuid4().hex[:8]}"
     central = conectar("central", autocommit=False)
     campus = conectar(CAMPUS_DEMO, autocommit=False)
@@ -129,6 +133,7 @@ def escenario_c(usuario):
     print("    recuperación: tpc_recover() en cada nodo y COMMIT PREPARED")
     for nodo in ["central", CAMPUS_DEMO]:
         conexion = conectar(nodo, autocommit=False)
+        # tpc_recover() lista las transacciones preparadas del nodo. Solo se confirman las de esta demo
         for xid in conexion.tpc_recover():
             if xid.gtrid.startswith(gtrid):
                 conexion.tpc_commit(xid)

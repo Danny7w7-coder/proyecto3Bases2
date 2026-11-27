@@ -84,6 +84,7 @@ def mostrar_log_recuperacion(nodo):
 def restaurar_fisico(nodo, archivo=None, hasta=None):
     """Restaura el respaldo físico del nodo y aplica el WAL (hasta 'hasta' si se indica)."""
     inicio = time.time()
+    # Si no se indica un archivo, se usa el respaldo físico más reciente
     archivo = archivo or ultimo(nodo, "fisico", f"{nodo}_base_*.tar.gz")
     print(f" Restaurando {nodo} desde {archivo.split('backups')[-1]}" + (f" hasta {hasta}" if hasta else ""))
 
@@ -94,9 +95,11 @@ def restaurar_fisico(nodo, archivo=None, hasta=None):
         print(f"  [{nodo}] detenido")
     compose("up", "--no-start", nodo)  # crea contenedor y volumen si no existen
 
+    # Configuración de recuperación: de dónde sacar el WAL y, si es PITR, hasta qué hora aplicarlo
     configuracion = ["restore_command = 'cp /wal_archive/%f %p'"]
     if hasta:
         configuracion += [f"recovery_target_time = '{hasta}'", "recovery_target_action = 'promote'"]
+    # Script de shell que corre en un contenedor auxiliar con el volumen de datos montado
     script = ("set -e\n"
               "find /data -mindepth 1 -delete\n"                 # vaciar el volumen
               "tar -xzf - -C /data\n"                            # el respaldo llega por stdin
@@ -108,9 +111,11 @@ def restaurar_fisico(nodo, archivo=None, hasta=None):
         auxiliar(nombre_volumen(nodo, "data"), "/data", script, entrada)
     print(f"  [{nodo}] respaldo descomprimido en el volumen + recovery.signal")
 
+    # Al arrancar, PostgreSQL ve recovery.signal y aplica el WAL. Se espera a que termine
     compose("start", nodo)
     esperar_nodo(nodo, 180)
     esperar_hasta(lambda: contar(nodo, "SELECT NOT pg_is_in_recovery()"), 180)
+    # Se quita la configuración de recuperación para que un reinicio normal no la repita
     conexion = conectar(nodo)
     for parametro in ["restore_command", "recovery_target_time", "recovery_target_action"]:
         conexion.cursor().execute(f"ALTER SYSTEM RESET {parametro}")
@@ -123,7 +128,8 @@ def restaurar_fisico(nodo, archivo=None, hasta=None):
 
 
 def pitr(nodo, hasta):
-    """Recupera un campus hasta una hora exacta y vuelve a enganchar su replicación. Devuelve los tiempos de cada parte."""
+    """Recupera un campus hasta una hora exacta y vuelve a enganchar su replicación.
+    Devuelve los tiempos de cada parte."""
     t_restaurar = restaurar_fisico(nodo, hasta=hasta)
     t0 = time.time()
     replicacion.resincronizar(nodo)
@@ -131,7 +137,8 @@ def pitr(nodo, hasta):
 
 
 def fisico(nodo):
-    """Recupera un campus con su último respaldo físico y todo el WAL, y vuelve a enganchar su replicación. Devuelve los tiempos de cada parte."""
+    """Recupera un campus con su último respaldo físico y todo el WAL,
+    y vuelve a enganchar su replicación. Devuelve los tiempos de cada parte."""
     t_restaurar = restaurar_fisico(nodo)
     t0 = time.time()
     replicacion.resincronizar(nodo)
@@ -143,6 +150,7 @@ def desde_central(campus):
     import init_all
     inicio = time.time()
     print(f" Recreando {campus} vacío y recuperándolo desde el central")
+    # Se detiene el nodo si sigue encendido y se asegura que existan su contenedor y sus volúmenes
     if esta_corriendo(campus):
         compose("stop", campus)
     compose("up", "--no-start", campus)
@@ -167,12 +175,14 @@ def desde_central(campus):
     replicacion.crear_publicacion("central", f"pub_rescate_{campus}", [campus])
     replicacion.crear_suscripcion(campus, f"sub_rescate_{campus}", "central", f"pub_rescate_{campus}")
     replicacion.esperar_copia_inicial(campus)
+    # Ya copiados los datos, la publicación y la suscripción temporales se borran
     conexion = conectar(campus)
     conexion.cursor().execute(f"DROP SUBSCRIPTION sub_rescate_{campus}")
     conexion.close()
     conexion = conectar("central")
     conexion.cursor().execute(f"DROP PUBLICATION pub_rescate_{campus}")
     conexion.close()
+    # Total de objetos recuperados en las 8 capas, para mostrarlo
     filas = sum(contar(campus, f"SELECT count(*) FROM {campus}.{t}") for t in
                 ["edificios", "carreteras", "aceras", "parqueos", "zonas_verdes",
                  "puntos_interes", "iluminacion", "accesibilidad"])

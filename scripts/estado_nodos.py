@@ -17,11 +17,13 @@ PARAMETROS = {
 
 def estado(nodo):
     """Devuelve una lista con los datos de un nodo, o None si no responde."""
+    # Si no se puede conectar, el nodo se muestra como CAIDO
     try:
         conexion = conectar(nodo)
     except Exception:
         return None
     cursor = conexion.cursor()
+    # Versiones de PostgreSQL y de las extensiones
     cursor.execute("SHOW server_version")
     version_pg = cursor.fetchone()[0].split()[0]
     cursor.execute("SELECT extversion FROM pg_extension WHERE extname = 'postgis'")
@@ -29,6 +31,7 @@ def estado(nodo):
     version_postgis = fila[0] if fila else "NO"
     cursor.execute("SELECT count(*) FROM pg_extension WHERE extname = 'pgcrypto'")
     pgcrypto = "si" if cursor.fetchone()[0] else "no"
+    # Valor actual de cada parámetro importante (wal_level, max_prepared_transactions, ...)
     valores = []
     for parametro in PARAMETROS:
         cursor.execute(f"SHOW {parametro}")
@@ -45,6 +48,7 @@ def main():
     problema = revisar_servidores_de_esta_carpeta()
     if problema:
         print(f"AVISO: {problema}\n")
+    # Se arma una fila por nodo y al final se imprime todo como tabla
     titulos = ["nodo", "pg", "postgis", "pgcrypto", *PARAMETROS, "wal ok/fallo", "estado"]
     filas = []
     todo_ok = True

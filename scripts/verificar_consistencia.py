@@ -62,6 +62,7 @@ def mostrar_retrasos():
     for nodo in NODOS:
         conexion = conectar(nodo)
         cursor = conexion.cursor()
+        # Bytes pendientes = posición actual del WAL menos lo que el suscriptor ya confirmó
         cursor.execute("""
             SELECT application_name, state,
                    pg_wal_lsn_diff(pg_current_wal_lsn(), flush_lsn) AS bytes_pendientes,
@@ -75,6 +76,7 @@ def mostrar_retrasos():
     for nodo in NODOS:
         conexion = conectar(nodo)
         cursor = conexion.cursor()
+        # Segundos desde el último mensaje y errores que lleva cada suscripción
         cursor.execute("""
             SELECT s.subname, round(extract(epoch FROM now() - s.last_msg_receipt_time)::numeric, 1),
                    coalesce(e.apply_error_count, 0)

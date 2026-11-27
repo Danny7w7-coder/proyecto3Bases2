@@ -78,6 +78,7 @@ class SigTecPlugin:
         if not capas:
             raise logica.ErrorSigTec("No se pudo cargar ninguna capa:\n" + "\n".join(problemas))
 
+        # 6. Acercar el mapa a la zona del campus
         rect = modulo_capas.rectangulo(extension)
         if rect:
             self.acercar_al_campus(rect)
@@ -85,11 +86,13 @@ class SigTecPlugin:
             # después de agregarla (y mostraría todo el país). Por eso se vuelve a acercar después.
             QTimer.singleShot(400, lambda: self.acercar_al_campus(rect))
 
+        # 7. Guardar la sesión y mostrar el mensaje verde de bienvenida
         self.sesion = datos
         texto = (f"Bienvenido {datos['usuario']} ({datos['campus_nombre']}). "
                  f"Se cargaron {len(capas)} capas. Puede consultar todos los campus "
                  f"y editar solo los objetos de su campus.")
         self.iface.messageBar().pushMessage(TITULO, texto, level=Qgis.MessageLevel.Success, duration=8)
+        # Si alguna capa no cargó, se avisa aparte (las demás sí se pueden usar)
         if problemas:
             QMessageBox.warning(self.iface.mainWindow(), TITULO, "\n".join(problemas))
 

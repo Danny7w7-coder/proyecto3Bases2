@@ -20,9 +20,11 @@ class DialogoLogin(QDialog):
         self.setWindowTitle("SIG-TEC - Ingreso")
         self.setMinimumWidth(340)
 
+        # Título centrado arriba de la ventana
         titulo = QLabel("<b>SIG-TEC</b><br>Sistema de Información Geográfica de los campus del TEC")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # Campos de usuario y contraseña
         self.usuario = QLineEdit()
         self.usuario.setPlaceholderText("ej. sancarlos1")
         self.clave = QLineEdit()
@@ -32,10 +34,12 @@ class DialogoLogin(QDialog):
         formulario.addRow("Usuario:", self.usuario)
         formulario.addRow("Contraseña:", self.clave)
 
+        # Texto en rojo para los errores (vacío al inicio)
         self.mensaje = QLabel("")
         self.mensaje.setWordWrap(True)
         self.mensaje.setStyleSheet("color: #b00020;")
 
+        # Botones Cancelar e Ingresar, alineados a la derecha
         self.boton_ingresar = QPushButton("Ingresar")
         self.boton_ingresar.setDefault(True)  # Enter = Ingresar
         self.boton_ingresar.clicked.connect(self.ingresar)
@@ -47,6 +51,7 @@ class DialogoLogin(QDialog):
         botones.addWidget(boton_cancelar)
         botones.addWidget(self.boton_ingresar)
 
+        # Orden de arriba hacia abajo: título, campos, mensaje y botones
         diseno = QVBoxLayout(self)
         diseno.addWidget(titulo)
         diseno.addLayout(formulario)

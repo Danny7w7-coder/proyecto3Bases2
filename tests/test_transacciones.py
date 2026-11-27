@@ -38,6 +38,7 @@ def prueba_2pc_falla():
 
 def prueba_preparada_no_se_replica():
     """Una transacción PREPARADA no se replica hasta el COMMIT PREPARED"""
+    # INSERT dentro de una transacción que se prepara pero no se confirma
     nombre = f"PRUEBA-{uuid.uuid4().hex[:8]}"
     conexion = conectar(CAMPUS, autocommit=False)
     conexion.tpc_begin(nombre)
@@ -60,6 +61,7 @@ def prueba_preparada_no_se_replica():
     # COMMIT PREPARED -> ahora sí llega
     c = conectar(CAMPUS)
     c.cursor().execute(f"COMMIT PREPARED '{nombre}'")
+    # Limpieza de las dos filas de prueba
     c.cursor().execute(f"DELETE FROM {CAMPUS}.puntos_interes WHERE nombre IN (%s, %s)", (nombre, marcador))
     c.close()
 

@@ -75,11 +75,12 @@ def capa(nombre):
 def correr():
     """Ejecuta los 10 pasos de la prueba en orden y al final cierra QGIS."""
     from sigtec.dialogo_login import DialogoLogin
+    # Datos que un paso guarda para que los use otro paso (por ejemplo la zona del campus)
     estado = {}
 
     @paso("1. Activar el plugin instalado desde el ZIP: aparece el botón TEC")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Activar el plugin instalado desde el ZIP: aparece el botón TEC."""
         updateAvailablePlugins()
         loadPlugin("sigtec")
         startPlugin("sigtec")
@@ -90,10 +91,12 @@ def correr():
         captura("01_boton_tec")
         return accion.text()
 
+    # El plugin ya cargado por QGIS (lo activó el paso 1)
     plugin = plugins["sigtec"]
 
     def ingresar(usuario, clave, nombre_captura):
         """Abre la ventana de ingreso, escribe usuario y clave, presiona Ingresar y devuelve la ventana."""
+        # Se usa la misma ventana que abre el botón TEC y se llena como lo haría una persona
         dialogo = DialogoLogin(plugin.ingresar, iface.mainWindow())
         dialogo.show()
         esperar(500)
@@ -102,13 +105,14 @@ def correr():
         captura(nombre_captura + "_antes", dialogo)
         dialogo.boton_ingresar.click()
         esperar(800)
+        # Si la ventana sigue abierta hubo un error: se guarda la captura con el mensaje
         if dialogo.isVisible():
             captura(nombre_captura, dialogo)
         return dialogo
 
     @paso("2. Ingreso con clave mala: mensaje rojo y la ventana sigue abierta")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Ingreso con clave mala: mensaje rojo y la ventana sigue abierta."""
         dialogo = ingresar("sancarlos1", "mala", "02_clave_mala")
         texto = dialogo.mensaje.text()
         assert dialogo.isVisible() and "incorrectos" in texto, texto
@@ -117,7 +121,7 @@ def correr():
 
     @paso("3. Ingreso con usuario inactivo: se rechaza")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Ingreso con usuario inactivo: se rechaza."""
         dialogo = ingresar("inactivo1", "tec2026", "03_inactivo")
         texto = dialogo.mensaje.text()
         assert dialogo.isVisible() and "inactivo" in texto, texto
@@ -126,7 +130,7 @@ def correr():
 
     @paso("4. Ingreso correcto: se cierra, carga 8 capas en el grupo, mapa en el campus y mensaje verde")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Ingreso correcto: se cierra, carga 8 capas en el grupo, mapa en el campus y mensaje verde."""
         dialogo = ingresar("sancarlos1", "tec2026", "04_login_ok")
         assert not dialogo.isVisible(), dialogo.mensaje.text()
         raiz = QgsProject.instance().layerTreeRoot()
@@ -145,7 +149,7 @@ def correr():
 
     @paso("5. Estilos aplicados y datos de los 5 campus en cada capa")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Estilos aplicados y datos de los 5 campus en cada capa."""
         tipos = {n: capa(n).renderer().type() for n in ["Edificios", "Puntos de interés", "Iluminación"]}
         assert tipos["Puntos de interés"] == "categorizedSymbol" and capa("Edificios").labelsEnabled(), tipos
         campus = {f["campus_id"] for f in capa("Edificios").getFeatures()}
@@ -158,7 +162,7 @@ def correr():
 
     @paso("6. Tabla de atributos de Edificios con campus_id de los 5 campus")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Tabla de atributos de Edificios con campus_id de los 5 campus."""
         tabla = iface.showAttributeTable(capa("Edificios"))
         tabla.resize(1100, 520)
         captura("06_tabla_atributos", tabla)
@@ -167,7 +171,7 @@ def correr():
 
     @paso("7. Editar un edificio PROPIO (Laboratorios, pisos = 5) y guardar")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Editar un edificio PROPIO (Laboratorios, pisos = 5) y guardar."""
         c = capa("Edificios")
         iface.setActiveLayer(c)
         objeto = next(c.getFeatures(QgsFeatureRequest().setFilterExpression("\"nombre\" = 'Laboratorios'")))
@@ -180,14 +184,16 @@ def correr():
 
     @paso("8. Editar un edificio de CARTAGO (Biblioteca): se rechaza y el plugin muestra el mensaje")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Editar un edificio de CARTAGO (Biblioteca): se rechaza y el plugin muestra el mensaje."""
         c = capa("Edificios")
         objeto = next(c.getFeatures(QgsFeatureRequest().setFilterExpression("\"nombre\" = 'Biblioteca'")))
         antes = len(iface.messageBar().items())
         c.startEditing()
         c.changeAttributeValue(objeto.id(), c.fields().indexOf("pisos"), 9)
+        # Al guardar, el trigger INSTEAD OF del nodo rechaza el cambio
         guardado = c.commitChanges()
         captura("08_edicion_rechazada")
+        # Se descarta el cambio que QGIS dejó pendiente en la capa
         c.rollBack()
         assert not guardado, "QGIS guardó el cambio en Cartago"
         nuevos = mensajes_barra()[antes:] or mensajes_barra()
@@ -196,10 +202,11 @@ def correr():
 
     @paso("9. Crear un punto de interés nuevo en San Carlos (soda)")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Crear un punto de interés nuevo en San Carlos (soda)."""
         c = capa("Puntos de interés")
         iface.setActiveLayer(c)
         c.startEditing()
+        # Punto nuevo en el centro del mapa. Sin id ni campus_id: los pone el trigger
         nuevo = QgsFeature(c.fields())
         nuevo["nombre"] = "Soda de prueba QGIS"
         nuevo["tipo"] = "soda"
@@ -213,7 +220,7 @@ def correr():
 
     @paso("10. Entrar con cartago1: el grupo cambia (sin duplicar) y el punto de San Carlos se ve desde Cartago")
     def _():
-        """Cuerpo de este paso de la prueba (su nombre está en el decorador)."""
+        """Paso: Entrar con cartago1: el grupo cambia (sin duplicar) y el punto de San Carlos se ve desde Cartago."""
         esperar(1500)  # tiempo para que la replicación llegue a Cartago
         dialogo = ingresar("cartago1", "tec2026", "10_login_cartago")
         assert not dialogo.isVisible(), dialogo.mensaje.text()
@@ -224,6 +231,7 @@ def correr():
         captura("10_desde_cartago")
         return f"grupo {grupos[0]} | punto {visto[0]['id']} visible desde Cartago"
 
+    # Resumen en resultado.txt y cierre de QGIS sin preguntar si se guarda el proyecto
     escribir(f"RESULTADO {resultados.count(True)} OK {resultados.count(False)} FALLO")
     escribir("FIN")
     registro.close()

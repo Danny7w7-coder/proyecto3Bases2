@@ -71,19 +71,26 @@ def cargar_capas(datos, srid, estilos, al_fallar_edicion=None, proyecto=None):
     estilos: {vista: qml} con los estilos vigentes
     al_fallar_edicion: función(nombre_capa, mensaje) que se llama si la base rechaza una edición
     """
+    # Si el usuario ya había ingresado antes, se quitan las capas viejas
     proyecto = proyecto or QgsProject.instance()
     quitar_grupo_anterior(proyecto)
+    # El mapa usa el sistema de coordenadas institucional (CRTM05)
     proyecto.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{srid}"))
 
+    # Grupo arriba de todo en el panel de capas, con el nombre del campus
     grupo = proyecto.layerTreeRoot().insertGroup(0, f"{PREFIJO_GRUPO} - {datos['campus_nombre']}")
     capas, problemas = [], []
 
     for vista, nombre, tipo in CAPAS:
+        # Cada capa lee la vista sig.<capa> del nodo del campus
         capa = QgsVectorLayer(uri_capa(datos, vista, tipo, srid).uri(False), nombre, "postgres")
+        # Si una capa falla, se anota el problema y se sigue con las demás
         if not capa.isValid():
             problemas.append(f"{nombre}: no se pudo cargar ({capa.error().summary()})")
             continue
+        # Estilo vigente que viene de layer_styles del central
         aplicar_estilo(capa, estilos.get(vista))
+        # Para mostrar en QGIS el mensaje del trigger cuando se rechaza una edición
         if al_fallar_edicion:
             conectar_errores(capa, al_fallar_edicion)
         proyecto.addMapLayer(capa, False)  # False: no la agrega a la raíz, sino al grupo

@@ -54,9 +54,11 @@ def titulo(texto):
 
 # ---------------------------------------------------------------------
 def escenario_a():
-    """Escenario A: borrado por error en San Carlos y recuperación a un instante (PITR). Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
+    """Escenario A: borrado por error en San Carlos y recuperación a un instante (PITR).
+    Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
     nodo = "san_carlos"
     tiempos = {}
+    # Consultas que se repiten para comparar antes y después
     contar_puntos = f"SELECT count(*) FROM {nodo}.puntos_interes"
     contar_luces = f"SELECT count(*) FROM {nodo}.iluminacion"
 
@@ -68,7 +70,9 @@ def escenario_a():
     ejecutar(nodo, f"INSERT INTO {nodo}.edificios (nombre, area, pisos, geom) VALUES (%s, 100, 1, "
                    f"ST_MakeEnvelope(444100, 1145700, 444110, 1145710, {SRID}))", (nombre_nuevo,))
     print(f"  insertado: {nombre_nuevo}")
+    # Cantidades que debe haber al final, después de recuperar
     puntos, luces = contar(nodo, contar_puntos), contar(nodo, contar_luces)
+    # T es el instante al que se va a volver. Las pausas lo separan del INSERT y del borrado
     time.sleep(2)
     hora_t = contar(nodo, "SELECT now()::timestamptz(0)::text")
     print(f"  T = {hora_t}   (puntos de interés={puntos}, luminarias={luces})")
@@ -77,6 +81,7 @@ def escenario_a():
     titulo("A.3 ERROR: alguien borra todos los puntos de interés y luminarias de San Carlos")
     ejecutar(nodo, f"DELETE FROM {nodo}.puntos_interes")
     ejecutar(nodo, f"DELETE FROM {nodo}.iluminacion")
+    # Se espera a que el borrado llegue a Cartago, para mostrar que la replicación no lo evita
     esperar_hasta(lambda: contar("cartago", contar_puntos) == 0)
     print(f"  San Carlos: {contar(nodo, contar_puntos)} puntos | central: {contar('central', contar_puntos)} "
           f"| Cartago: {contar('cartago', contar_puntos)}   <- el borrado ya se replicó")
@@ -85,6 +90,7 @@ def escenario_a():
     tiempos["restaurar"], tiempos["resincronizar"] = restaurar.pitr(nodo, hora_t)
 
     titulo("A.5 Comprobación")
+    # Cada valor es (obtenido, esperado). La prueba pasa si todos coinciden
     resultado = {
         "puntos": (contar(nodo, contar_puntos), puntos),
         "luminarias": (contar(nodo, contar_luces), luces),
@@ -94,6 +100,7 @@ def escenario_a():
     }
     for clave, (obtenido, esperado) in resultado.items():
         print(f"  {clave:<20} {obtenido} (esperado {esperado}) {'OK' if obtenido == esperado else 'MAL'}")
+    # Al final los 6 nodos deben tener las mismas 40 capas
     diferentes = consistente()
     print(f"  consistencia: {'40 capas OK' if not diferentes else 'DIFERENTES ' + str(diferentes)}")
     print(f"  tiempos: restaurar+WAL {tiempos['restaurar']:.0f} s, resincronizar {tiempos['resincronizar']:.0f} s")
@@ -102,9 +109,12 @@ def escenario_a():
 
 # ---------------------------------------------------------------------
 def escenario_b(modo):
-    """Escenario B: se pierde el nodo de Limón. Se recupera con el respaldo físico (modo 'fisico') o desde la copia del central (modo 'desde_central'). Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
+    """Escenario B: se pierde el nodo de Limón. Se recupera con el respaldo físico (modo 'fisico')
+    o desde la copia del central (modo 'desde_central').
+    Devuelve (resultado de cada comprobación, capas diferentes, tiempos)."""
     nodo = "limon"
     tiempos = {}
+    # Solo el modo físico necesita un respaldo previo. El otro usa la copia del central
     if modo == "fisico":
         titulo("B.1 Respaldo físico de Limón")
         respaldo_fisico(nodo)
@@ -116,10 +126,13 @@ def escenario_b(modo):
     esperar_hasta(lambda: contar("central", f"SELECT count(*) FROM {nodo}.puntos_interes WHERE nombre = %s",
                                  (nombre_nuevo,)) == 1)
     print(f"  insertado y replicado al central: {nombre_nuevo}")
+    # Se cierra el WAL actual para que el cambio quede en el archivo de WAL
     print(f"  WAL archivado hasta {forzar_archivo_wal(nodo)}")
+    # Cantidad de puntos que debe tener Limón después de recuperarse
     total = contar(nodo, f"SELECT count(*) FROM {nodo}.puntos_interes")
 
     titulo("B.3 FALLA: se pierde el nodo de Limón (contenedor y volumen de datos)")
+    # El tiempo total se mide desde que se pierde el nodo
     inicio = time.time()
     perder_nodo(nodo)
 
@@ -131,6 +144,7 @@ def escenario_b(modo):
     tiempos["total"] = time.time() - inicio
 
     titulo("B.5 Comprobación")
+    # Cada valor es (obtenido, esperado). La prueba pasa si todos coinciden
     resultado = {
         "punto_reciente": (contar(nodo, f"SELECT count(*) FROM {nodo}.puntos_interes WHERE nombre = %s",
                                   (nombre_nuevo,)), 1),
@@ -144,12 +158,14 @@ def escenario_b(modo):
     esperar_hasta(lambda: contar("cartago", "SELECT count(*) FROM sig.puntos_interes WHERE nombre = %s",
                                  (otro,)) == 1)
     resultado["edicion_despues"] = (1, 1)
+    # Se borran los dos puntos de prueba y se espera a que el borrado también se replique
     ejecutar(nodo, f"DELETE FROM {nodo}.puntos_interes WHERE nombre IN (%s, %s)", (nombre_nuevo, otro))
     esperar_hasta(lambda: contar("cartago", "SELECT count(*) FROM sig.puntos_interes WHERE nombre = %s",
                                  (otro,)) == 0)
 
     for clave, (obtenido, esperado) in resultado.items():
         print(f"  {clave:<20} {obtenido} (esperado {esperado}) {'OK' if obtenido == esperado else 'MAL'}")
+    # Al final los 6 nodos deben tener las mismas 40 capas
     diferentes = consistente()
     print(f"  consistencia: {'40 capas OK' if not diferentes else 'DIFERENTES ' + str(diferentes)}")
     print(f"  tiempos: restaurar {tiempos['restaurar']:.0f} s, resincronizar {tiempos['resincronizar']:.0f} s, "

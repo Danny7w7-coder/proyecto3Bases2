@@ -72,12 +72,15 @@ def ejecutor_psycopg2(host, puerto, base, usuario, clave):
     import psycopg2
 
     def ejecutar(sql, parametros=()):
-        """Abre una conexión, ejecuta la consulta y devuelve las filas como diccionarios. Los errores se convierten en ErrorSigTec con un mensaje en español."""
+        """Abre una conexión, ejecuta la consulta y devuelve las filas como diccionarios.
+        Los errores se convierten en ErrorSigTec con un mensaje en español."""
+        # 1. Conectar. Si el servidor no responde en 5 s, se avisa en español
         try:
             conexion = psycopg2.connect(host=host, port=puerto, dbname=base, user=usuario,
                                         password=clave, connect_timeout=5)
         except psycopg2.OperationalError as error:
             raise ErrorSigTec(f"No se pudo conectar a {host}:{puerto}. ¿Está encendido el servidor?\n{error}")
+        # 2. Ejecutar y convertir cada fila en {columna: valor}
         try:
             cursor = conexion.cursor()
             cursor.execute(sql, parametros)
@@ -86,8 +89,10 @@ def ejecutor_psycopg2(host, puerto, base, usuario, clave):
             conexion.commit()
             return filas
         except psycopg2.Error as error:
+            # Solo el mensaje principal (por ejemplo el que escribe el trigger)
             raise ErrorSigTec(error.diag.message_primary or str(error))
         finally:
+            # La conexión se cierra siempre, haya error o no
             conexion.close()
 
     return ejecutar

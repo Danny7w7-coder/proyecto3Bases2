@@ -76,6 +76,7 @@ def ejecutar_sql_nodo(nodo):
     campus_id = NODOS[nodo]["campus_id"]
     conexion = conectar(nodo)
     cursor = conexion.cursor()
+    # Los archivos van en orden por su número (00, 05, 10...): cada uno usa lo que creó el anterior
     for ruta in archivos_del_nodo(nodo):
         nombre = os.path.relpath(ruta, os.path.join(RAIZ, "sql")).replace("\\", "/")
         with open(ruta, encoding="utf-8") as archivo:
@@ -95,6 +96,7 @@ def ejecutar_sql_nodo(nodo):
                 cursor.execute(sql)
             print(f"  [{nodo}] {nombre} (x5 esquemas)")
         else:
+            # Los demás archivos se ejecutan una sola vez
             cursor.execute(plantilla)
             print(f"  [{nodo}] {nombre}")
     conexion.close()
@@ -102,9 +104,11 @@ def ejecutar_sql_nodo(nodo):
 
 def main():
     """Levanta Docker, ejecuta los SQL en cada nodo, carga los datos, arma la replicación y publica los estilos."""
+    # Opciones: --reset borra todo y empieza de cero, --sin-datos no carga los datos de ejemplo
     reset = "--reset" in sys.argv
     sin_datos = "--sin-datos" in sys.argv
 
+    # Paso 1: levantar los 6 contenedores
     print("1. Docker")
     if hay_instalacion_de_otra_carpeta():
         reset = True  # sus datos tienen otras contraseñas: no se pueden reutilizar
@@ -115,21 +119,25 @@ def main():
     # Sin --build: si los contenedores ya corren, no se recrean (no se corta la replicación)
     docker_compose("up", "-d")
 
+    # Paso 2: PostgreSQL tarda unos segundos en aceptar conexiones después de arrancar
     print("2. Esperando a que los nodos respondan")
     for nodo in NODOS:
         if not esperar_nodo(nodo):
             sys.exit(f"ERROR: el nodo {nodo} no respondió a tiempo")
         print(f"  {nodo}: listo")
 
+    # Paso 3: esquemas, tablas, vistas, triggers y roles en cada nodo
     print("3. Scripts SQL")
     for nodo in NODOS:
         ejecutar_sql_nodo(nodo)
 
+    # Paso 4: datos de ejemplo. Van antes de la replicación para que viajen en la copia inicial
     if not sin_datos:
         print("4. Datos de ejemplo")
         import cargar_datos
         cargar_datos.main()
 
+    # Pasos 5 y 6: replicación y estilos. Se importan aquí porque solo se usan en este punto
     print("5. Replicación lógica (nivel 1 y nivel 2)")
     import replicacion
     replicacion.configurar()
