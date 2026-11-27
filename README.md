@@ -174,7 +174,7 @@ Este comando hace todo:
 6. Configura la replicación de los dos niveles.
 7. Publica los estilos de QGIS.
 
-**Tiempo:** unos 2 minutos, y más la primera vez por la descarga. Al final debe aparecer:
+**Tiempo:** alrededor de 1 minuto, y más la primera vez por la descarga. Al final debe aparecer:
 
 ```
 Listo. Para ver el estado: python scripts/estado_nodos.py
@@ -204,7 +204,7 @@ Listo, el sistema está funcionando.
 python scripts/correr_pruebas.py
 ```
 
-- Ejecuta **54 pruebas** y muestra **OK** o **FALLO** en cada una. Tarda unos **4 minutos**.
+- Ejecuta **54 pruebas** y muestra **OK** o **FALLO** en cada una. Tarda entre **1 y 3 minutos**.
 - Al final debe decir: `Resultado: 54 OK, 0 FALLO`.
 - Algunas pruebas apagan y restauran nodos a propósito (respaldos y recuperación). Es normal.
 - Si QGIS no está instalado, la prueba del plugin dentro de QGIS aparece como **OMITIDA** y no cuenta como fallo.
